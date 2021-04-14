@@ -1,0 +1,158 @@
+{
+    "meta": {
+        "label": "Affinity scores",
+        "description": "Compute affinity scores from a dataset of user-item samples and a dataset of similarity scores",
+        "icon": "icon-beer"
+    },
+    "kind": "PYTHON",
+    "selectableFromDataset": "samples_dataset",
+    "inputRoles": [
+        {
+            "name": "samples_dataset",
+            "label": "Samples dataset",
+            "description": "Dataset of user-item samples",
+            "arity": "UNARY",
+            "required": true,
+            "acceptsDataset": true,
+            "mustBeSQL": true
+        },
+        {
+            "name": "similarity_scores_dataset",
+            "label": "Similarity scores dataset",
+            "description": "Dataset of user-user or item-item similarity scores",
+            "arity": "UNARY",
+            "required": true,
+            "acceptsDataset": true,
+            "mustBeSQL": true
+        }
+    ],
+    "outputRoles": [
+        {
+            "name": "scored_samples_dataset",
+            "label": "Scored samples dataset",
+            "description": "Dataset of user-item samples with affinity scores",
+            "arity": "UNARY",
+            "required": true,
+            "acceptsDataset": true,
+            "mustBeSQL": true
+        }
+    ],
+    "params": [
+        {
+            "type": "SEPARATOR",
+            "name": "separator_input",
+            "label": "Input parameters"
+        },
+        {
+            "name": "users_column",
+            "label": "Users column",
+            "allowedColumnTypes": [
+                "tinyint",
+                "smallint",
+                "int",
+                "bigint",
+                "float",
+                "double",
+                "string"
+            ],
+            "type": "COLUMN",
+            "description": "",
+            "columnRole": "samples_dataset",
+            "mandatory": true
+        },
+        {
+            "name": "items_column",
+            "label": "Items column",
+            "allowedColumnTypes": [
+                "tinyint",
+                "smallint",
+                "int",
+                "bigint",
+                "float",
+                "double",
+                "string"
+            ],
+            "type": "COLUMN",
+            "description": "",
+            "columnRole": "samples_dataset",
+            "mandatory": true
+        },
+        {
+            "name": "ratings_column",
+            "label": "(Optional) Ratings column",
+            "allowedColumnTypes": [
+                "tinyint",
+                "smallint",
+                "int",
+                "bigint",
+                "float",
+                "double"
+            ],
+            "type": "COLUMN",
+            "description": "",
+            "columnRole": "samples_dataset",
+            "mandatory": false
+        },
+        {
+            "name": "similarity_scores_type",
+            "label": "Similarity scores type",
+            "type": "SELECT",
+            "defaultValue": "user_similariyy",
+            "selectChoices": [
+                {
+                    "value": "user_similariyy",
+                    "label": "User similariyy"
+                },
+                {
+                    "value": "item_similariyy",
+                    "label": "Item similariyy"
+                }
+            ]
+        },
+        {
+            "type": "SEPARATOR",
+            "name": "separator_parameters",
+            "label": "Affinity scores parameters"
+        },
+        {
+            "name": "top_n_most_similar",
+            "label": "Top n most similar to compute scores",
+            "type": "INT",
+            "defaultValue": 10
+        },
+        {
+            "type": "SEPARATOR",
+            "name": "separator_preprocessing",
+            "label": "Preprocessing parameters"
+        },
+        {
+            "name": "user_visit_threshold",
+            "label": "User visit threshold",
+            "type": "INT",
+            "defaultValue": 10
+        },
+        {
+            "name": "item_visit_threshold",
+            "label": "Item visit threshold",
+            "type": "INT",
+            "defaultValue": 10
+        },
+        {
+            "name": "normalization_method",
+            "label": "Normalization method",
+            "type": "SELECT",
+            "defaultValue": "l1_normalization",
+            "selectChoices": [
+                {
+                    "value": "l1_normalization",
+                    "label": "L1 normalization"
+                },
+                {
+                    "value": "l2_normalization",
+                    "label": "L2 normalization"
+                }
+            ]
+        }
+    ],
+    "resourceKeys": []
+}

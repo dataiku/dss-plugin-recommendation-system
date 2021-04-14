@@ -1,0 +1,105 @@
+{
+    "meta": {
+        "label": "Sampling",
+        "description": "Create positive and negative samples from positive user-item samples and scored user-item samples",
+        "icon": "icon-beer"
+    },
+    "kind": "PYTHON",
+    "selectableFromDataset": "scored_samples_dataset",
+    "inputRoles": [
+        {
+            "name": "scored_samples_dataset",
+            "label": "Scored samples dataset",
+            "description": "Dataset of user-item samples with one or more affinity scores",
+            "arity": "UNARY",
+            "required": true,
+            "acceptsDataset": true,
+            "mustBeSQL": true
+        },
+        {
+            "name": "training_samples_dataset",
+            "label": "Training samples dataset",
+            "description": "Train dataset of user-item positive samples",
+            "arity": "UNARY",
+            "required": true,
+            "acceptsDataset": true,
+            "mustBeSQL": true
+        },
+        {
+            "name": "historical_samples_dataset",
+            "label": "(Optional) Historical samples dataset",
+            "description": "Dataset of historical user-item samples used to compute the affinity scores",
+            "arity": "UNARY",
+            "required": false,
+            "acceptsDataset": true,
+            "mustBeSQL": true
+        }
+    ],
+    "outputRoles": [
+        {
+            "name": "positive_negative_samples_dataset",
+            "label": "Positive and negative scored samples dataset",
+            "description": "Dataset of user-item positive and negative samples with affinity scores",
+            "arity": "UNARY",
+            "required": true,
+            "acceptsDataset": true,
+            "mustBeSQL": true
+        }
+    ],
+    "params": [
+        {
+            "type": "SEPARATOR",
+            "name": "separator_input",
+            "label": "Input parameters"
+        },
+        {
+            "name": "score_columns",
+            "label": "Columns with affinity scores",
+            "allowedColumnTypes": [
+                "tinyint",
+                "smallint",
+                "int",
+                "bigint",
+                "float",
+                "double"
+            ],
+            "type": "COLUMNS",
+            "description": "",
+            "columnRole": "scored_samples_dataset",
+            "mandatory": true
+        },
+        {
+            "type": "SEPARATOR",
+            "name": "separator_parameters",
+            "label": "Parameters"
+        },
+        {
+            "name": "sampling_method",
+            "label": "Sampling method",
+            "type": "SELECT",
+            "defaultValue": "no_sampling",
+            "selectChoices": [
+                {
+                    "value": "no_sampling",
+                    "label": "No sampling"
+                },
+                {
+                    "value": "negative_samples_percentage",
+                    "label": "Negative samples percentage"
+                }
+            ]
+        },
+        {
+            "name": "negative_samples_percentage",
+            "label": "Negative samples percentage",
+            "description": "% of negative samples in the output dataset",
+            "type": "INT",
+            "defaultValue": 50,
+            "mandatory": false,
+            "minI": 1,
+            "maxI": 99,
+            "visibilityCondition": "model.sampling_method=='negative_samples_percentage'"
+        }
+    ],
+    "resourceKeys": []
+}
