@@ -100,12 +100,12 @@
             "defaultValue": "user_similariyy",
             "selectChoices": [
                 {
-                    "value": "user_similariyy",
-                    "label": "User similariyy"
+                    "value": "user_similarity",
+                    "label": "User similarity"
                 },
                 {
-                    "value": "item_similariyy",
-                    "label": "Item similariyy"
+                    "value": "item_similarity",
+                    "label": "Item similarity"
                 }
             ]
         },

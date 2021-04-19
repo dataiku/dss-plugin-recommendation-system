@@ -123,7 +123,7 @@
         {
             "type": "SEPARATOR",
             "name": "separator_preprocessing",
-            "label": "Preprocessing parameters"
+            "label": "Pre-processing parameters"
         },
         {
             "name": "user_visit_threshold",
