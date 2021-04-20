@@ -1,33 +1,33 @@
 from query_handlers import ScoringHandler
-import dataiku
-import pandas as pd
-import numpy as np
-from dataiku.sql import JoinTypes, Expression, Column, Constant, InlineSQL, SelectQuery, Table, Dialects, toSQL, \
-    Window
+from dataiku.sql import JoinTypes, Expression, Column, Constant, InlineSQL, SelectQuery, Table, Dialects, toSQL, Window
 from dataiku.core.sql import SQLExecutor2
 import dku_constants as constants
 import logging
-logger = logging.get_logger("__main__")
+
+logger = logging.getLogger(__name__)
 
 
 class AutomaticScoringHandler(ScoringHandler):
-    def __init__(self):
-        super().__init__(**kwargs)
-
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        print(f"self.__dict__: {self.__dict__}")
 
     def build(self):
         # inputs
         samples_dataset = self.file_manager.samples_dataset
 
-        # outputs
-        similarity_scores_dataset = self.file_manager.similarity_scores_dataset
-
         # total user and item visits
         visit_count = SelectQuery()
         visit_count.select_from(samples_dataset)
         visit_count.select(Column("*"))
-        visit_count.select(Column("*").count().over(Window(partition_by=[Column(constants.USER_ID_COLUMN_NAME)])), alias="nb_visit_user")
-        visit_count.select(Column("*").count().over(Window(partition_by=[Column(constants.ITEM_ID_COLUMN_NAME)])), alias="nb_visit_item")
+        visit_count.select(
+            Column("*").count().over(Window(partition_by=[Column(constants.USER_ID_COLUMN_NAME)])),
+            alias="nb_visit_user",
+        )
+        visit_count.select(
+            Column("*").count().over(Window(partition_by=[Column(constants.ITEM_ID_COLUMN_NAME)])),
+            alias="nb_visit_item",
+        )
 
         # normalise total visits
         normed_count = SelectQuery()
@@ -38,14 +38,20 @@ class AutomaticScoringHandler(ScoringHandler):
         normed_count.select(Column("nb_visit_user", table_name="visit_count"))
         normed_count.select(Column("nb_visit_item", table_name="visit_count"))
 
-        normed_count.select(Constant(1).div(Column("nb_visit_user", table_name="visit_count").sqrt()),
-                            alias="visit_user_normed")
-        normed_count.select(Constant(1).div(Column("nb_visit_item", table_name="visit_count").sqrt()),
-                            alias="visit_item_normed")
+        normed_count.select(
+            Constant(1).div(Column("nb_visit_user", table_name="visit_count").sqrt()), alias="visit_user_normed"
+        )
+        normed_count.select(
+            Constant(1).div(Column("nb_visit_item", table_name="visit_count").sqrt()), alias="visit_item_normed"
+        )
 
         # keep only items and users with enough visits
-        normed_count.where(Column("nb_visit_user", table_name="visit_count").ge(Constant(self.dku_config.user_visit_threshold)))
-        normed_count.where(Column("nb_visit_item", table_name="visit_count").ge(Constant(self.dku_config.item_visit_threshold)))
+        normed_count.where(
+            Column("nb_visit_user", table_name="visit_count").ge(Constant(self.dku_config.user_visit_threshold))
+        )
+        normed_count.where(
+            Column("nb_visit_item", table_name="visit_count").ge(Constant(self.dku_config.item_visit_threshold))
+        )
 
         # normed_count.order_by(Column("constants.USER_ID_COLUMN_NAME", table_name="visit_count"))
         # normed_count.order_by(Column(constants.ITEM_ID_COLUMN_NAME, table_name="visit_count"))
@@ -53,20 +59,31 @@ class AutomaticScoringHandler(ScoringHandler):
         items_similarity = SelectQuery()
         items_similarity.select_from(normed_count, alias="c1")
 
-        join_condition = Column(constants.USER_ID_COLUMN_NAME, "c1").eq_null_unsafe(Column(constants.USER_ID_COLUMN_NAME, "c2"))
+        join_condition = Column(constants.USER_ID_COLUMN_NAME, "c1").eq_null_unsafe(
+            Column(constants.USER_ID_COLUMN_NAME, "c2")
+        )
 
         items_similarity.join(normed_count, JoinTypes.INNER, join_condition, alias="c2")
 
-        items_similarity.where(Column(constants.ITEM_ID_COLUMN_NAME, table_name="c1").ne(Column(constants.ITEM_ID_COLUMN_NAME, table_name="c2")))
+        items_similarity.where(
+            Column(constants.ITEM_ID_COLUMN_NAME, table_name="c1").ne(
+                Column(constants.ITEM_ID_COLUMN_NAME, table_name="c2")
+            )
+        )
 
         items_similarity.group_by(Column(constants.ITEM_ID_COLUMN_NAME, table_name="c1"))
         items_similarity.group_by(Column(constants.ITEM_ID_COLUMN_NAME, table_name="c2"))
 
-        items_similarity.select(Column(constants.ITEM_ID_COLUMN_NAME, table_name="c1"), alias=f"{constants.ITEM_ID_COLUMN_NAME}_1")
-        items_similarity.select(Column(constants.ITEM_ID_COLUMN_NAME, table_name="c2"), alias=f"{constants.ITEM_ID_COLUMN_NAME}_2")
+        items_similarity.select(
+            Column(constants.ITEM_ID_COLUMN_NAME, table_name="c1"), alias=f"{constants.ITEM_ID_COLUMN_NAME}_1"
+        )
+        items_similarity.select(
+            Column(constants.ITEM_ID_COLUMN_NAME, table_name="c2"), alias=f"{constants.ITEM_ID_COLUMN_NAME}_2"
+        )
 
-        similarity_formula = Column("visit_item_normed", table_name="c1").times(
-            Column("visit_item_normed", table_name="c2")).sum()
+        similarity_formula = (
+            Column("visit_item_normed", table_name="c1").times(Column("visit_item_normed", table_name="c2")).sum()
+        )
         items_similarity.select(similarity_formula, alias=constants.SIMILARITY_COLUMN_NAME)
 
         row_numbers = SelectQuery()
@@ -76,11 +93,15 @@ class AutomaticScoringHandler(ScoringHandler):
         row_numbers.select(Column(f"{constants.ITEM_ID_COLUMN_NAME}_2", table_name="item_sim"))
         row_numbers.select(Column(constants.SIMILARITY_COLUMN_NAME, table_name="item_sim"))
 
-        row_number_expression = Expression().rowNumber().over(
-            Window(
-                partition_by=[Column(f"{constants.ITEM_ID_COLUMN_NAME}_1", table_name="item_sim")],
-                order_by=[Column(constants.SIMILARITY_COLUMN_NAME, table_name="item_sim")],
-                order_types=['DESC']
+        row_number_expression = (
+            Expression()
+            .rowNumber()
+            .over(
+                Window(
+                    partition_by=[Column(f"{constants.ITEM_ID_COLUMN_NAME}_1", table_name="item_sim")],
+                    order_by=[Column(constants.SIMILARITY_COLUMN_NAME, table_name="item_sim")],
+                    order_types=["DESC"],
+                )
             )
         )
         row_numbers.select(row_number_expression, alias="row_number")
@@ -97,19 +118,25 @@ class AutomaticScoringHandler(ScoringHandler):
         item_cf = SelectQuery()
         item_cf.select_from(top_items, alias="top_items")
 
-        join_condition = Column(f"{constants.ITEM_ID_COLUMN_NAME}_2", "top_items").eq_null_unsafe(Column(constants.ITEM_ID_COLUMN_NAME, "events"))
+        join_condition = Column(f"{constants.ITEM_ID_COLUMN_NAME}_2", "top_items").eq_null_unsafe(
+            Column(constants.ITEM_ID_COLUMN_NAME, "events")
+        )
         item_cf.join(normed_count, JoinTypes.INNER, join_condition, alias="events")
 
         item_cf.group_by(Column(f"{constants.ITEM_ID_COLUMN_NAME}_1", table_name="top_items"))
         item_cf.group_by(Column(constants.USER_ID_COLUMN_NAME, table_name="events"))
 
-        item_cf.select(Column(f"{constants.ITEM_ID_COLUMN_NAME}_1", table_name="top_items"), alias=constants.ITEM_ID_COLUMN_NAME)
+        item_cf.select(
+            Column(f"{constants.ITEM_ID_COLUMN_NAME}_1", table_name="top_items"), alias=constants.ITEM_ID_COLUMN_NAME
+        )
         item_cf.select(Column(constants.USER_ID_COLUMN_NAME, table_name="events"))
 
-        item_cf.select(Column(constants.SIMILARITY_COLUMN_NAME, table_name="top_items").sum(), alias="item_based_cf_score")
+        item_cf.select(
+            Column(constants.SIMILARITY_COLUMN_NAME, table_name="top_items").sum(), alias=constants.SCORE_COLUMN_NAME
+        )
 
         item_cf.order_by(Column(constants.ITEM_ID_COLUMN_NAME))
-        item_cf.order_by(Column("item_based_cf_score"), direction="DESC")
+        item_cf.order_by(Column(constants.SCORE_COLUMN_NAME), direction="DESC")
 
         # final sql query
 

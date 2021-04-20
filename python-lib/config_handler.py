@@ -6,54 +6,32 @@ from dku_utils import list_enum_values
 def create_dku_config(recipe_id, config):
     dku_config = DkuConfig()
     if recipe_id == RECIPE.AFFINITY_SCORE:
-        return add_affinity_score_config(dku_config, config)
+        add_affinity_score_config(dku_config, config)
     elif recipe_id == RECIPE.SAMPLING:
-        return add_sampling_config(dku_config, config)
+        add_sampling_config(dku_config, config)
     elif recipe_id == RECIPE.COLLABORATIVE_FILTERING:
-        return add_collaborative_filtering_config(dku_config, config)
+        add_collaborative_filtering_config(dku_config, config)
     return dku_config
 
 
 def add_sampling_config(dku_config, config):
-    dku_config.add_param(
-        name="score_columns",
-        value=config.get("score_columns"),
-        required=True
-    )
+    dku_config.add_param(name="score_columns", value=config.get("score_columns"), required=True)
     dku_config.add_param(
         name="sampling_method",
         value=config.get("sampling_method"),
         required=True,
-        checks=[
-            {
-                "type": "in",
-                "op": list_enum_values(SAMPLING_METHOD)
-            }
-        ]
+        checks=[{"type": "in", "op": list_enum_values(SAMPLING_METHOD)}],
     )
     dku_config.add_param(
         name="negative_samples_percentage",
         value=config.get("negative_samples_percentage"),
-        checks=[
-            {
-                "type": "between",
-                "op": [0, 100]
-            }
-        ]
+        checks=[{"type": "between", "op": [0, 100]}],
     )
 
 
 def add_scoring_config(dku_config, config):
-    dku_config.add_param(
-        name="users_column",
-        value=config.get("users_column"),
-        required=True
-    )
-    dku_config.add_param(
-        name="items_column",
-        value=config.get("items_column"),
-        required=True
-    )
+    dku_config.add_param(name="users_column", value=config.get("users_column"), required=True)
+    dku_config.add_param(name="items_column", value=config.get("items_column"), required=True)
     dku_config.add_param(
         name="ratings_column",
         value=config.get("ratings_column"),
@@ -62,45 +40,25 @@ def add_scoring_config(dku_config, config):
         name="top_n_most_similar",
         value=config.get("top_n_most_similar"),
         required=True,
-        checks=[
-            {
-                "type": "sup",
-                "op": 0
-            }
-        ]
+        checks=[{"type": "sup", "op": 0}],
     )
     dku_config.add_param(
         name="user_visit_threshold",
         value=config.get("user_visit_threshold"),
         required=True,
-        checks=[
-            {
-                "type": "sup",
-                "op": 0
-            }
-        ]
+        checks=[{"type": "sup", "op": 0}],
     )
     dku_config.add_param(
         name="item_visit_threshold",
         value=config.get("item_visit_threshold"),
         required=True,
-        checks=[
-            {
-                "type": "sup",
-                "op": 0
-            }
-        ]
+        checks=[{"type": "sup", "op": 0}],
     )
     dku_config.add_param(
         name="normalization_method",
         value=config.get("normalization_method"),
         required=True,
-        checks=[
-            {
-                "type": "in",
-                "op": list_enum_values(NORMALIZATION_METHOD)
-            }
-        ]
+        checks=[{"type": "in", "op": list_enum_values(NORMALIZATION_METHOD)}],
     )
 
 
@@ -110,12 +68,7 @@ def add_affinity_score_config(dku_config, config):
         name="similarity_scores_type",
         value=config.get("similarity_scores_type"),
         required=True,
-        checks=[
-            {
-                "type": "in",
-                "op": list_enum_values(SIMILARITY_TYPE)
-            }
-        ]
+        checks=[{"type": "in", "op": list_enum_values(SIMILARITY_TYPE)}],
     )
 
 
@@ -125,12 +78,5 @@ def add_collaborative_filtering_config(dku_config, config):
         name="collaborative_filtering_method",
         value=config.get("collaborative_filtering_method"),
         required=True,
-        checks=[
-            {
-                "type": "in",
-                "op": list_enum_values(CF_METHOD)
-            }
-        ]
+        checks=[{"type": "in", "op": list_enum_values(CF_METHOD)}],
     )
-
-
