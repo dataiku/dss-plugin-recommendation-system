@@ -15,6 +15,6 @@ def create_dku_file_manager():
 
 def run():
     recipe_config = get_recipe_config()
-    dku_config = create_dku_config(recipe_config, RECIPE.SAMPLING)
+    dku_config = create_dku_config(RECIPE.SAMPLING, recipe_config)
     dku_file_manager = create_dku_file_manager()
     # TODO
