@@ -2,6 +2,7 @@ from dku_config import create_dku_config
 from dataiku.customrecipe import get_recipe_config
 from dku_constants import RECIPE
 from dku_file_manager import DkuFileManager
+from query_handlers import AutomaticScoringHandler
 
 
 def create_dku_file_manager():
@@ -16,4 +17,6 @@ def run():
     recipe_config = get_recipe_config()
     dku_config = create_dku_config(RECIPE.COLLABORATIVE_FILTERING, recipe_config)
     file_manager = create_dku_file_manager()
-    # TODO
+    query_handler = AutomaticScoringHandler(dku_config, file_manager)
+    query_handler.build()
+    query_handler.execute()

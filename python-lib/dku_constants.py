@@ -25,3 +25,10 @@ class SAMPLING_METHOD(Enum):
 class CF_METHOD(Enum):
     USER_BASED = "user_based"
     ITEM_BASED = "item_based"
+
+
+USER_ID_COLUMN_NAME = "user_id"
+ITEM_ID_COLUMN_NAME = "item_id"
+RATING_COLUMN_NAME = "rating"
+SCORE_COLUMN_NAME = "score"
+SIMILARITY_COLUMN_NAME = "similarity"
