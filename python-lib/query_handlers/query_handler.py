@@ -7,5 +7,5 @@ class QueryHandler:
     def build(self):
         pass
 
-    def execute(self):
+    def execute(self, output_dataset):
         pass
