@@ -17,15 +17,7 @@ class CustomScoringHandler(ScoringHandler):
             self.based_column = self.dku_config.items_column_name
             self.pivot_column = self.dku_config.users_column_name
 
-    def build(self):
-        # inputs
-        samples_dataset = self.file_manager.samples_dataset
-
-        # Build all queries
-        cast_mapping = {self.dku_config.users_column_name: "string", self.dku_config.items_column_name: "string"}
-        samples_cast = self._cast_table(samples_dataset, cast_mapping, alias="_input_dataset")
-        visit_count = self._build_visit_count(samples_cast)
-        normed_count = self._build_normed_count(visit_count)
+    def _prepare_similarity_input(self):
         similarity = self.file_manager.similarity_scores_dataset
 
         renaming_mapping = {
@@ -40,10 +32,10 @@ class CustomScoringHandler(ScoringHandler):
             constants.SIMILARITY_COLUMN_NAME: "double",
         }
         similarity_cast = self._cast_table(similarity_renamed, cast_mapping, alias="_sim_renamed")
-        row_numbers = self._build_row_numbers(similarity_cast)
-        top_n = self._build_top_n(row_numbers)
-        cf_scores = self._build_collaborative_filtering(top_n, normed_count)
-        # final sql query
-        # print(toSQL(cf_scores, dataset=samples_dataset))
-        self.query = toSQL(cf_scores, dataset=samples_dataset)
-        print("self.query :\n", self.query)
+        return similarity_cast
+
+    def build(self):
+        normed_count = self._prepare_samples()
+        similarity = self._prepare_similarity_input()
+        cf_scores = self._build_collaborative_filtering(similarity, normed_count)
+        self._execute(cf_scores, self.file_manager.scored_samples_dataset)

@@ -100,7 +100,7 @@ class ScoringHandler(QueryHandler):
         top_n.where(Column("row_number", table_name="row_nb").le(Constant(self.dku_config.top_n_most_similar)))
         return top_n
 
-    def _build_collaborative_filtering(self, top_n, normed_count):
+    def _build_sum_of_similarity_scores(self, top_n, normed_count):
         cf_scores = SelectQuery()
         cf_scores.select_from(top_n, alias="top_n")
 
@@ -121,9 +121,25 @@ class ScoringHandler(QueryHandler):
         cf_scores.order_by(Column(constants.SCORE_COLUMN_NAME), direction="DESC")
         return cf_scores
 
-    def execute(self, output_dataset):
-        sql_executor = SQLExecutor2(dataset=self.file_manager.samples_dataset)
-        sql_executor.exec_recipe_fragment(output_dataset, self.query)
+    def _prepare_samples(self):
+        samples_dataset = self.file_manager.samples_dataset
+        cast_mapping = {self.dku_config.users_column_name: "string", self.dku_config.items_column_name: "string"}
+        samples_cast = self._cast_table(samples_dataset, cast_mapping, alias="_input_dataset")
+        visit_count = self._build_visit_count(samples_cast)
+        normed_count = self._build_normed_count(visit_count)
+        return normed_count
+
+    def _build_collaborative_filtering(self, similarity, normed_count):
+        row_numbers = self._build_row_numbers(similarity)
+        top_n = self._build_top_n(row_numbers)
+        cf_scores = self._build_sum_of_similarity_scores(top_n, normed_count)
+        return cf_scores
+
+    def _execute(self, table, output_dataset):
+        query = toSQL(table, dataset=output_dataset)
+        print("query :\n", query)
+        sql_executor = SQLExecutor2(dataset=output_dataset)
+        sql_executor.exec_recipe_fragment(output_dataset, query)
 
     def _get_visit_normalization(self, column_to_norm):
         if self.dku_config.normalization_method == constants.NORMALIZATION_METHOD.L1.value:
