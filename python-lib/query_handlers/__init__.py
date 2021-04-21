@@ -3,5 +3,5 @@ from query_handlers.query_handler import QueryHandler
 from query_handlers.sampling_handler import SamplingHandler
 from query_handlers.scoring_handler import ScoringHandler
 
-from query_handlers.manual_scoring_handler import ManualScoringHandler
-from query_handlers.automatic_scoring_handler import AutomaticScoringHandler
+from query_handlers.manual_scoring_handler import CustomScoringHandler
+from query_handlers.automatic_scoring_handler import AutoScoringHandler

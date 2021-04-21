@@ -7,7 +7,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class AutomaticScoringHandler(ScoringHandler):
+class AutoScoringHandler(ScoringHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         print(f"self.__dict__: {self.__dict__}")

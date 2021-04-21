@@ -1,7 +1,7 @@
 {
     "meta": {
-        "label": "Affinity scores",
-        "description": "Compute affinity scores from a dataset of user-item samples and a dataset of similarity scores",
+        "label": "Auto collaborative filtering",
+        "description": "Compute collaborative filtering scores from a dataset of user-item samples",
         "icon": "icon-beer"
     },
     "kind": "PYTHON",
@@ -15,24 +15,24 @@
             "required": true,
             "acceptsDataset": true,
             "mustBeSQL": true
-        },
-        {
-            "name": "similarity_scores_dataset",
-            "label": "Similarity scores dataset",
-            "description": "Dataset of user-user or item-item similarity scores",
-            "arity": "UNARY",
-            "required": true,
-            "acceptsDataset": true,
-            "mustBeSQL": true
         }
     ],
     "outputRoles": [
         {
             "name": "scored_samples_dataset",
             "label": "Scored samples dataset",
-            "description": "Dataset of user-item samples with affinity scores",
+            "description": "Dataset of user-item samples with collaborative filtering scores",
             "arity": "UNARY",
             "required": true,
+            "acceptsDataset": true,
+            "mustBeSQL": true
+        },
+        {
+            "name": "similarity_scores_dataset",
+            "label": "(Optional) Similarity scores dataset",
+            "description": "Dataset of similarity scores used to compute the collaborative filtering scores",
+            "arity": "UNARY",
+            "required": false,
             "acceptsDataset": true,
             "mustBeSQL": true
         }
@@ -94,25 +94,25 @@
             "mandatory": false
         },
         {
-            "name": "similarity_scores_type",
-            "label": "Similarity scores type",
-            "type": "SELECT",
-            "defaultValue": "user_similariyy",
-            "selectChoices": [
-                {
-                    "value": "user_similarity",
-                    "label": "User similarity"
-                },
-                {
-                    "value": "item_similarity",
-                    "label": "Item similarity"
-                }
-            ]
-        },
-        {
             "type": "SEPARATOR",
             "name": "separator_parameters",
-            "label": "Affinity scores parameters"
+            "label": "Collaborative filtering parameters"
+        },
+        {
+            "name": "collaborative_filtering_method",
+            "label": "Collaborative filtering method",
+            "type": "SELECT",
+            "defaultValue": "user_based",
+            "selectChoices": [
+                {
+                    "value": "user_based",
+                    "label": "User-based"
+                },
+                {
+                    "value": "item_based",
+                    "label": "Item-based"
+                }
+            ]
         },
         {
             "name": "top_n_most_similar",
@@ -123,7 +123,7 @@
         {
             "type": "SEPARATOR",
             "name": "separator_preprocessing",
-            "label": "Preprocessing parameters"
+            "label": "Pre-processing parameters"
         },
         {
             "name": "user_visit_threshold",
