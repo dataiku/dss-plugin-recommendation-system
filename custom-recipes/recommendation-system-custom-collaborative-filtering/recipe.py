@@ -1,4 +1,4 @@
-from dku_config import create_dku_config
+from config_handler import create_dku_config
 from dataiku.customrecipe import get_recipe_config
 from dku_constants import RECIPE
 from dku_file_manager import DkuFileManager
@@ -19,4 +19,7 @@ def run():
     file_manager = create_dku_file_manager()
     query_handler = CustomScoringHandler(dku_config, file_manager)
     query_handler.build()
-    query_handler.execute()
+    query_handler.execute(file_manager.scored_samples_dataset)
+
+
+run()

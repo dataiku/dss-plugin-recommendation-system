@@ -41,7 +41,7 @@
         {
             "type": "SEPARATOR",
             "name": "separator_input",
-            "label": "Input parameters"
+            "label": "Samples input"
         },
         {
             "name": "users_column_name",
@@ -94,6 +94,11 @@
             "mandatory": false
         },
         {
+            "type": "SEPARATOR",
+            "name": "separator_input",
+            "label": "Similarity input"
+        },
+        {
             "name": "similarity_scores_type",
             "label": "Similarity scores type",
             "type": "SELECT",
@@ -108,6 +113,56 @@
                     "label": "Item similarity"
                 }
             ]
+        },
+        {
+            "name": "similarity_column_1_name",
+            "label": "Column 1",
+            "allowedColumnTypes": [
+                "tinyint",
+                "smallint",
+                "int",
+                "bigint",
+                "float",
+                "double",
+                "string"
+            ],
+            "type": "COLUMN",
+            "description": "",
+            "columnRole": "similarity_scores_dataset",
+            "mandatory": true
+        },
+        {
+            "name": "similarity_column_2_name",
+            "label": "Column 2",
+            "allowedColumnTypes": [
+                "tinyint",
+                "smallint",
+                "int",
+                "bigint",
+                "float",
+                "double",
+                "string"
+            ],
+            "type": "COLUMN",
+            "description": "",
+            "columnRole": "similarity_scores_dataset",
+            "mandatory": true
+        },
+        {
+            "name": "similarity_score_column_name",
+            "label": "Similarity column",
+            "allowedColumnTypes": [
+                "tinyint",
+                "smallint",
+                "int",
+                "bigint",
+                "float",
+                "double"
+            ],
+            "type": "COLUMN",
+            "description": "",
+            "columnRole": "similarity_scores_dataset",
+            "mandatory": false
         },
         {
             "type": "SEPARATOR",

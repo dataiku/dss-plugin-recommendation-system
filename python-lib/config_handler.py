@@ -6,11 +6,11 @@ from dku_utils import list_enum_values
 def create_dku_config(recipe_id, config):
     dku_config = DkuConfig()
     if recipe_id == RECIPE.AFFINITY_SCORE:
-        add_affinity_score_config(dku_config, config)
+        add_custom_collaborative_filtering_config(dku_config, config)
     elif recipe_id == RECIPE.SAMPLING:
         add_sampling_config(dku_config, config)
     elif recipe_id == RECIPE.COLLABORATIVE_FILTERING:
-        add_collaborative_filtering_config(dku_config, config)
+        add_auto_collaborative_filtering_config(dku_config, config)
     return dku_config
 
 
@@ -62,7 +62,7 @@ def add_scoring_config(dku_config, config):
     )
 
 
-def add_affinity_score_config(dku_config, config):
+def add_custom_collaborative_filtering_config(dku_config, config):
     add_scoring_config(dku_config, config)
     dku_config.add_param(
         name="similarity_scores_type",
@@ -70,9 +70,14 @@ def add_affinity_score_config(dku_config, config):
         required=True,
         checks=[{"type": "in", "op": list_enum_values(SIMILARITY_TYPE)}],
     )
+    dku_config.add_param(name="similarity_column_1_name", value=config.get("similarity_column_1_name"), required=True)
+    dku_config.add_param(name="similarity_column_2_name", value=config.get("similarity_column_2_name"), required=True)
+    dku_config.add_param(
+        name="similarity_score_column_name", value=config.get("similarity_score_column_name"), required=True
+    )
 
 
-def add_collaborative_filtering_config(dku_config, config):
+def add_auto_collaborative_filtering_config(dku_config, config):
     add_scoring_config(dku_config, config)
     dku_config.add_param(
         name="collaborative_filtering_method",
