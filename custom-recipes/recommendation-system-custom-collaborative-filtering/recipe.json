@@ -44,7 +44,7 @@
             "label": "Input parameters"
         },
         {
-            "name": "users_column",
+            "name": "users_column_name",
             "label": "Users column",
             "allowedColumnTypes": [
                 "tinyint",
@@ -61,7 +61,7 @@
             "mandatory": true
         },
         {
-            "name": "items_column",
+            "name": "items_column_name",
             "label": "Items column",
             "allowedColumnTypes": [
                 "tinyint",
@@ -78,7 +78,7 @@
             "mandatory": true
         },
         {
-            "name": "ratings_column",
+            "name": "ratings_column_name",
             "label": "(Optional) Ratings column",
             "allowedColumnTypes": [
                 "tinyint",

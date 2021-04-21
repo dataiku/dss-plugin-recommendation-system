@@ -15,7 +15,7 @@ def create_dku_config(recipe_id, config):
 
 
 def add_sampling_config(dku_config, config):
-    dku_config.add_param(name="score_columns", value=config.get("score_columns"), required=True)
+    dku_config.add_param(name="score_columns_name", value=config.get("score_columns_name"), required=True)
     dku_config.add_param(
         name="sampling_method",
         value=config.get("sampling_method"),
@@ -30,11 +30,11 @@ def add_sampling_config(dku_config, config):
 
 
 def add_scoring_config(dku_config, config):
-    dku_config.add_param(name="users_column", value=config.get("users_column"), required=True)
-    dku_config.add_param(name="items_column", value=config.get("items_column"), required=True)
+    dku_config.add_param(name="users_column_name", value=config.get("users_column_name"), required=True)
+    dku_config.add_param(name="items_column_name", value=config.get("items_column_name"), required=True)
     dku_config.add_param(
-        name="ratings_column",
-        value=config.get("ratings_column"),
+        name="ratings_column_name",
+        value=config.get("ratings_column_name"),
     )
     dku_config.add_param(
         name="top_n_most_similar",

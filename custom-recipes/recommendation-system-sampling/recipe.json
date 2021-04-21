@@ -53,7 +53,7 @@
             "label": "Input parameters"
         },
         {
-            "name": "score_columns",
+            "name": "score_columns_name",
             "label": "Columns with affinity scores",
             "allowedColumnTypes": [
                 "tinyint",

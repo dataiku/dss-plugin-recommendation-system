@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 class AutoScoringHandler(ScoringHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.dku_config.collaborative_filtering_method == constants.CF_METHOD.USER_BASED:
+        if self.dku_config.collaborative_filtering_method == constants.CF_METHOD.USER_BASED.value:
             self.based_column = self.dku_config.users_column_name
             self.pivot_column = self.dku_config.items_column_name
         else:
@@ -33,12 +33,6 @@ class AutoScoringHandler(ScoringHandler):
         )
         return visit_count
 
-    def _get_visit_normalization(self, column_to_norm):
-        if self.dku_config.normalization_method == constants.NORMALIZATION_METHOD.L1:
-            return Constant(1).div(Column(column_to_norm, table_name="visit_count").sqrt())
-        else:
-            return Constant(1).div(Column(column_to_norm, table_name="visit_count").sqrt())
-
     def _build_normed_count(self, select_from):
         # normalise total visits
         normed_count = SelectQuery()
@@ -48,7 +42,6 @@ class AutoScoringHandler(ScoringHandler):
         normed_count.select(Column(self.dku_config.items_column_name, table_name="visit_count"))
         normed_count.select(Column("nb_visit_user", table_name="visit_count"))
         normed_count.select(Column("nb_visit_item", table_name="visit_count"))
-
 
         normed_count.select(self._get_visit_normalization("nb_visit_user"), alias="visit_user_normed")
         normed_count.select(self._get_visit_normalization("nb_visit_item"), alias="visit_item_normed")
@@ -66,27 +59,17 @@ class AutoScoringHandler(ScoringHandler):
         similarity = SelectQuery()
         similarity.select_from(select_from, alias="c1")
 
-        join_condition = Column(self.pivot_column, "c1").eq_null_unsafe(
-            Column(self.pivot_column, "c2")
-        )
+        join_condition = Column(self.pivot_column, "c1").eq_null_unsafe(Column(self.pivot_column, "c2"))
 
         similarity.join(select_from, JoinTypes.INNER, join_condition, alias="c2")
 
-        similarity.where(
-            Column(self.based_column, table_name="c1").ne(
-                Column(self.based_column, table_name="c2")
-            )
-        )
+        similarity.where(Column(self.based_column, table_name="c1").ne(Column(self.based_column, table_name="c2")))
 
         similarity.group_by(Column(self.based_column, table_name="c1"))
         similarity.group_by(Column(self.based_column, table_name="c2"))
 
-        similarity.select(
-            Column(self.based_column, table_name="c1"), alias=f"{self.based_column}_1"
-        )
-        similarity.select(
-            Column(self.based_column, table_name="c2"), alias=f"{self.based_column}_2"
-        )
+        similarity.select(Column(self.based_column, table_name="c1"), alias=f"{self.based_column}_1")
+        similarity.select(Column(self.based_column, table_name="c2"), alias=f"{self.based_column}_2")
 
         similarity_formula = (
             Column("visit_item_normed", table_name="c1").times(Column("visit_item_normed", table_name="c2")).sum()
@@ -104,8 +87,8 @@ class AutoScoringHandler(ScoringHandler):
 
         row_number_expression = (
             Expression()
-                .rowNumber()
-                .over(
+            .rowNumber()
+            .over(
                 Window(
                     partition_by=[Column(f"{self.based_column}_1", table_name="sim")],
                     order_by=[Column(constants.SIMILARITY_COLUMN_NAME, table_name="sim")],
@@ -131,17 +114,13 @@ class AutoScoringHandler(ScoringHandler):
         cf_scores = SelectQuery()
         cf_scores.select_from(top_n, alias="top_n")
 
-        join_condition = Column(f"{self.based_column}_2", "top_n").eq_null_unsafe(
-            Column(self.based_column, "events")
-        )
+        join_condition = Column(f"{self.based_column}_2", "top_n").eq_null_unsafe(Column(self.based_column, "events"))
         cf_scores.join(normed_count, JoinTypes.INNER, join_condition, alias="events")
 
         cf_scores.group_by(Column(f"{self.based_column}_1", table_name="top_n"))
         cf_scores.group_by(Column(self.pivot_column, table_name="events"))
 
-        cf_scores.select(
-            Column(f"{self.based_column}_1", table_name="top_n"), alias=self.based_column
-        )
+        cf_scores.select(Column(f"{self.based_column}_1", table_name="top_n"), alias=self.based_column)
         cf_scores.select(Column(self.pivot_column, table_name="events"))
 
         cf_scores.select(
@@ -157,7 +136,8 @@ class AutoScoringHandler(ScoringHandler):
         samples_dataset = self.file_manager.samples_dataset
 
         # Build all queries
-        normed_count = self._build_normed_count(samples_dataset)
+        visit_count = self._build_visit_count(samples_dataset)
+        normed_count = self._build_normed_count(visit_count)
         similarity = self._build_similarity(normed_count)
         if self.output_similarity_matrix:
             self.query = toSQL(similarity, dataset=samples_dataset)
@@ -169,8 +149,14 @@ class AutoScoringHandler(ScoringHandler):
         # final sql query
 
         self.query = toSQL(cf_scores, dataset=samples_dataset)
-        logger.warning("self.query : ", self.query)
+        print("self.query :\n", self.query)
 
     def execute(self, output_dataset):
         sql_executor = SQLExecutor2(dataset=self.file_manager.samples_dataset)
         sql_executor.exec_recipe_fragment(output_dataset, self.query)
+
+    def _get_visit_normalization(self, column_to_norm):
+        if self.dku_config.normalization_method == constants.NORMALIZATION_METHOD.L1.value:
+            return Constant(1).div(Column(column_to_norm, table_name="visit_count").sqrt())
+        else:
+            return Constant(1).div(Column(column_to_norm, table_name="visit_count").sqrt())
