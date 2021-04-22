@@ -10,7 +10,11 @@ logger = logging.getLogger(__name__)
 class CustomScoringHandler(ScoringHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.dku_config.similarity_scores_type == constants.SIMILARITY_TYPE.USER_SIMILARITY.value:
+        self.user_based = (
+            True if self.dku_config.similarity_scores_type == constants.SIMILARITY_TYPE.USER_SIMILARITY.value else False
+        )
+        # TODO put this in the parent class ?
+        if self.user_based:
             self.based_column = self.dku_config.users_column_name
             self.pivot_column = self.dku_config.items_column_name
         else:

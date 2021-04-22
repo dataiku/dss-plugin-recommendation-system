@@ -61,10 +61,7 @@ class ScoringHandler(QueryHandler):
         similarity.select(Column(self.based_column, table_name="c1"), alias=f"{self.based_column}_1")
         similarity.select(Column(self.based_column, table_name="c2"), alias=f"{self.based_column}_2")
 
-        similarity_formula = (
-            Column("visit_item_normed", table_name="c1").times(Column("visit_item_normed", table_name="c2")).sum()
-        )
-        similarity.select(similarity_formula, alias=constants.SIMILARITY_COLUMN_NAME)
+        similarity.select(self._get_similarity_formula(), alias=constants.SIMILARITY_COLUMN_NAME)
         return similarity
 
     def _build_row_numbers(self, select_from):
@@ -146,3 +143,7 @@ class ScoringHandler(QueryHandler):
             return Constant(1).div(Column(column_to_norm, table_name="visit_count").sqrt())
         else:
             return Constant(1).div(Column(column_to_norm, table_name="visit_count").sqrt())
+
+    def _get_similarity_formula(self):
+        column_to_sum = "visit_user_normed" if self.user_based else "visit_item_normed"
+        return Column(column_to_sum, table_name="c1").times(Column(column_to_sum, table_name="c2")).sum()

@@ -10,8 +10,10 @@ logger = logging.getLogger(__name__)
 class AutoScoringHandler(ScoringHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-        if self.dku_config.collaborative_filtering_method == constants.CF_METHOD.USER_BASED.value:
+        self.user_based = (
+            True if self.dku_config.collaborative_filtering_method == constants.CF_METHOD.USER_BASED.value else False
+        )
+        if self.user_based:
             self.based_column = self.dku_config.users_column_name
             self.pivot_column = self.dku_config.items_column_name
         else:
