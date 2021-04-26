@@ -1,5 +1,12 @@
 from dku_config import DkuConfig
-from dku_constants import RECIPE, NORMALIZATION_METHOD, SIMILARITY_TYPE, SAMPLING_METHOD, CF_METHOD
+from dku_constants import (
+    RECIPE,
+    NORMALIZATION_METHOD,
+    SIMILARITY_TYPE,
+    SAMPLING_METHOD,
+    CF_METHOD,
+    NEGATIVE_SAMPLES_GENERATION_MODE,
+)
 from dku_utils import list_enum_values
 
 
@@ -15,7 +22,40 @@ def create_dku_config(recipe_id, config):
 
 
 def add_sampling_config(dku_config, config):
-    dku_config.add_param(name="score_columns_name", value=config.get("score_columns_name"), required=True)
+    dku_config.add_param(
+        name="users_column_name",
+        value=config.get("scored_samples_users_column_name"),
+        required=True,
+    )
+    dku_config.add_param(
+        name="items_column_name",
+        value=config.get("scored_samples_items_column_name"),
+        required=True,
+    )
+    dku_config.add_param(name="score_column_names", value=config.get("score_column_names"), required=True)
+
+    dku_config.add_param(
+        name="training_samples_users_column_name",
+        value=config.get("training_samples_users_column_name"),
+        required=True,
+    )
+    dku_config.add_param(
+        name="training_samples_items_column_name",
+        value=config.get("training_samples_items_column_name"),
+        required=True,
+    )
+
+    dku_config.add_param(
+        name="historical_samples_users_column_name",
+        value=config.get("historical_samples_users_column_name"),
+        required=False,
+    )
+    dku_config.add_param(
+        name="historical_samples_items_column_name",
+        value=config.get("historical_samples_items_column_name"),
+        required=False,
+    )
+
     dku_config.add_param(
         name="sampling_method",
         value=config.get("sampling_method"),
@@ -26,6 +66,11 @@ def add_sampling_config(dku_config, config):
         name="negative_samples_percentage",
         value=config.get("negative_samples_percentage"),
         checks=[{"type": "between", "op": [0, 100]}],
+    )
+    dku_config.add_param(
+        name="negative_samples_generation_mode",
+        value=config.get("negative_samples_generation_mode"),
+        checks=[{"type": "in", "op": list_enum_values(NEGATIVE_SAMPLES_GENERATION_MODE)}],
     )
 
 

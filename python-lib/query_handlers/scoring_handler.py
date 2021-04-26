@@ -132,12 +132,6 @@ class ScoringHandler(QueryHandler):
         cf_scores = self._build_sum_of_similarity_scores(top_n, normed_count)
         return cf_scores
 
-    def _execute(self, table, output_dataset):
-        query = toSQL(table, dataset=output_dataset)
-        print("query :\n", query)
-        sql_executor = SQLExecutor2(dataset=output_dataset)
-        sql_executor.exec_recipe_fragment(output_dataset, query)
-
     def _get_visit_normalization(self, column_to_norm):
         if self.dku_config.normalization_method == constants.NORMALIZATION_METHOD.L1.value:
             return Constant(1).div(Column(column_to_norm, table_name="visit_count").sqrt())

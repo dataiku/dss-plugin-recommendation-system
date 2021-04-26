@@ -11,6 +11,12 @@ class QueryHandler:
     def build(self):
         pass
 
+    def _execute(self, table, output_dataset):
+        query = toSQL(table, dataset=output_dataset)
+        print("query :\n", query)
+        sql_executor = SQLExecutor2(dataset=output_dataset)
+        sql_executor.exec_recipe_fragment(output_dataset, query)
+
     def _rename_table(self, to_rename, renaming_mapping):
         renamed_table = SelectQuery()
         renamed_table.select_from(to_rename, alias="_renamed")

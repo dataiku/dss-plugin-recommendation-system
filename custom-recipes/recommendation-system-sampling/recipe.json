@@ -50,10 +50,44 @@
         {
             "type": "SEPARATOR",
             "name": "separator_input",
-            "label": "Input parameters"
+            "label": "Scored samples input"
         },
         {
-            "name": "score_columns_name",
+            "name": "scored_samples_users_column_name",
+            "label": "Users column",
+            "allowedColumnTypes": [
+                "tinyint",
+                "smallint",
+                "int",
+                "bigint",
+                "float",
+                "double",
+                "string"
+            ],
+            "type": "COLUMN",
+            "description": "",
+            "columnRole": "scored_samples_dataset",
+            "mandatory": true
+        },
+        {
+            "name": "scored_samples_items_column_name",
+            "label": "Items column",
+            "allowedColumnTypes": [
+                "tinyint",
+                "smallint",
+                "int",
+                "bigint",
+                "float",
+                "double",
+                "string"
+            ],
+            "type": "COLUMN",
+            "description": "",
+            "columnRole": "scored_samples_dataset",
+            "mandatory": true
+        },
+        {
+            "name": "score_column_names",
             "label": "Columns with affinity scores",
             "allowedColumnTypes": [
                 "tinyint",
@@ -67,6 +101,84 @@
             "description": "",
             "columnRole": "scored_samples_dataset",
             "mandatory": true
+        },
+        {
+            "type": "SEPARATOR",
+            "name": "separator_input",
+            "label": "Training samples input"
+        },
+        {
+            "name": "training_samples_users_column_name",
+            "label": "Users column",
+            "allowedColumnTypes": [
+                "tinyint",
+                "smallint",
+                "int",
+                "bigint",
+                "float",
+                "double",
+                "string"
+            ],
+            "type": "COLUMN",
+            "description": "",
+            "columnRole": "training_samples_dataset",
+            "mandatory": true
+        },
+        {
+            "name": "training_samples_items_column_name",
+            "label": "Items column",
+            "allowedColumnTypes": [
+                "tinyint",
+                "smallint",
+                "int",
+                "bigint",
+                "float",
+                "double",
+                "string"
+            ],
+            "type": "COLUMN",
+            "description": "",
+            "columnRole": "training_samples_dataset",
+            "mandatory": true
+        },
+        {
+            "type": "SEPARATOR",
+            "name": "separator_input",
+            "label": "(Optional) Historical samples input"
+        },
+        {
+            "name": "historical_samples_users_column_name",
+            "label": "(Optional) Users column",
+            "allowedColumnTypes": [
+                "tinyint",
+                "smallint",
+                "int",
+                "bigint",
+                "float",
+                "double",
+                "string"
+            ],
+            "type": "COLUMN",
+            "description": "",
+            "columnRole": "historical_samples_dataset",
+            "mandatory": false
+        },
+        {
+            "name": "historical_samples_items_column_name",
+            "label": "(Optional) Items column",
+            "allowedColumnTypes": [
+                "tinyint",
+                "smallint",
+                "int",
+                "bigint",
+                "float",
+                "double",
+                "string"
+            ],
+            "type": "COLUMN",
+            "description": "",
+            "columnRole": "historical_samples_dataset",
+            "mandatory": false
         },
         {
             "type": "SEPARATOR",
