@@ -17,6 +17,10 @@ class SIMILARITY_TYPE(Enum):
     ITEM_SIMILARITY = "item_similarity"
 
 
+class NEGATIVE_SAMPLES_GENERATION_MODE(Enum):
+    REMOVE_HISTORICAL_SAMPLES = "remove_historical_samples"
+
+
 class SAMPLING_METHOD(Enum):
     NO_SAMPLING = "no_sampling"
     NEGATIVE_SAMPLING_PERC = "negative_sampling_percentage"

@@ -145,5 +145,13 @@ class ScoringHandler(QueryHandler):
             return Constant(1).div(Column(column_to_norm, table_name="visit_count").sqrt())
 
     def _get_similarity_formula(self):
-        column_to_sum = "visit_user_normed" if self.user_based else "visit_item_normed"
+        column_to_sum = "visit_user_normed" if self.is_user_based else "visit_item_normed"
         return Column(column_to_sum, table_name="c1").times(Column(column_to_sum, table_name="c2")).sum()
+
+    def _assign_scoring_mode(self, is_user_based):
+        if is_user_based:
+            self.based_column = self.dku_config.users_column_name
+            self.pivot_column = self.dku_config.items_column_name
+        else:
+            self.based_column = self.dku_config.items_column_name
+            self.pivot_column = self.dku_config.users_column_name

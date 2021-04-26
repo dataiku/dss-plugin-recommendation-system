@@ -20,4 +20,5 @@ def run():
     file_manager = create_dku_file_manager()
     query_handler = SamplingHandler(dku_config, file_manager)
     query_handler.build()
-    query_handler.execute()
+
+run()

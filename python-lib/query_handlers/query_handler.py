@@ -11,9 +11,6 @@ class QueryHandler:
     def build(self):
         pass
 
-    def execute(self, output_dataset):
-        pass
-
     def _rename_table(self, to_rename, renaming_mapping):
         renamed_table = SelectQuery()
         renamed_table.select_from(to_rename, alias="_renamed")
@@ -27,3 +24,7 @@ class QueryHandler:
         for input_column, target_type in cast_mapping.items():
             cast_table.select(Column(input_column, table_name=alias).cast(target_type), alias=input_column)
         return cast_table
+
+    def _select_columns_list(self, select_query, column_names):
+        for col_name in column_names:
+            select_query.select(Column(col_name))
