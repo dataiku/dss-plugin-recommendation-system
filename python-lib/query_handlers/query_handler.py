@@ -31,9 +31,9 @@ class QueryHandler:
             cast_table.select(Column(input_column, table_name=alias).cast(target_type), alias=input_column)
         return cast_table
 
-    def _select_columns_list(self, select_query, column_names):
+    def _select_columns_list(self, select_query, column_names, table_name=None):
         for col_name in column_names:
-            select_query.select(Column(col_name))
+            select_query.select(Column(col_name, table_name=table_name))
 
     def _or_condition_columns_list(self, select_query, column_names, condition_method):
         or_condition = Constant(False)
