@@ -80,7 +80,6 @@ class SamplingHandler(QueryHandler):
 
         for col in self.dku_config.score_column_names:
             all_cf_scores.select(Column(col, table_name="all_cf_scores"))
-        # TODO select only rows where at least one selected score column is not null
 
         return all_cf_scores
 
@@ -108,6 +107,19 @@ class SamplingHandler(QueryHandler):
         unseen_samples_condition = Column("target").eq(Constant(1)).or_(Column("score_sample").eq(Constant(0)))
         historical_negative_samples_removed.where(unseen_samples_condition)
         return historical_negative_samples_removed
+
+    def _build_cf_scores_without_null(self, select_from):
+        null_scores_filtered = SelectQuery()
+        null_scores_filtered.select_from(select_from, alias="all_cf_scores_to_filter")
+        columns_to_select = [
+            self.dku_config.users_column_name,
+            self.dku_config.items_column_name,
+        ] + self.dku_config.score_column_names
+        self._select_columns_list(select_query=null_scores_filtered, column_names=columns_to_select)
+        self._or_condition_columns_list(
+            null_scores_filtered, self.dku_config.score_column_names, lambda x: x.is_not_null()
+        )
+        return null_scores_filtered
 
     def _build_filtered_with_perc(self, select_from):
         return select_from
@@ -149,7 +161,9 @@ class SamplingHandler(QueryHandler):
             self.file_manager.scored_samples_dataset, cast_mapping, alias="_scored_samples"
         )
 
-        all_cf_scores = self._build_all_cf_scores(scored_samples_cast, samples_for_training, samples_for_scores)
+        null_scores_filtered = self._build_cf_scores_without_null(scored_samples_cast)
+
+        all_cf_scores = self._build_all_cf_scores(null_scores_filtered, samples_for_training, samples_for_scores)
         all_cf_scores_with_target = self._build_all_cf_scores_with_target(all_cf_scores)
         scores_with_negative_samples = self.negative_samples_generation_func(all_cf_scores_with_target)
         negative_samples_filtered = self.postfiltering_func(scores_with_negative_samples)

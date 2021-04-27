@@ -34,3 +34,9 @@ class QueryHandler:
     def _select_columns_list(self, select_query, column_names):
         for col_name in column_names:
             select_query.select(Column(col_name))
+
+    def _or_condition_columns_list(self, select_query, column_names, condition_method):
+        or_condition = Constant(False)
+        for col_name in column_names:
+            or_condition = or_condition.or_(condition_method(Column(col_name)))
+        select_query.where(or_condition)
