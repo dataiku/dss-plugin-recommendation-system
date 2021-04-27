@@ -44,7 +44,9 @@ class SamplingHandler(QueryHandler):
         return samples_for_scores
 
     def _left_join_samples(self, left_select_query, left_table_name, right_select_query, right_table_name):
-        join_conditions = [Column(k, left_table_name).eq_null_unsafe(Column(k, right_table_name)) for k in self.sample_keys]
+        join_conditions = [
+            Column(k, left_table_name).eq_null_unsafe(Column(k, right_table_name)) for k in self.sample_keys
+        ]
         left_select_query.join(right_select_query, JoinTypes.LEFT, join_conditions, alias=right_table_name)
 
     def _build_all_cf_scores(self, select_from, samples_for_training, samples_for_scores=None):
@@ -112,7 +114,7 @@ class SamplingHandler(QueryHandler):
             users_col_name=self.dku_config.training_samples_users_column_name,
             items_col_name=self.dku_config.training_samples_items_column_name,
             cast_mapping=cast_mapping,
-            alias="_training_samples"
+            alias="_training_samples",
         )
 
         samples_for_training = self._build_samples_for_training(prepared_training_samples)
@@ -123,7 +125,7 @@ class SamplingHandler(QueryHandler):
                 users_col_name=self.dku_config.historical_samples_users_column_name,
                 items_col_name=self.dku_config.historical_samples_items_column_name,
                 cast_mapping=cast_mapping,
-                alias="_historical_samples"
+                alias="_historical_samples",
             )
             samples_for_scores = self._build_samples_for_scoring(prepared_historical_samples)
         else:
