@@ -78,8 +78,11 @@ class ScoringHandler(QueryHandler):
             .over(
                 Window(
                     partition_by=[Column(f"{self.based_column}_1", table_name="sim")],
-                    order_by=[Column(constants.SIMILARITY_COLUMN_NAME, table_name="sim")],
-                    order_types=["DESC"],
+                    order_by=[
+                        Column(constants.SIMILARITY_COLUMN_NAME, table_name="sim"),
+                        Column(f"{self.based_column}_2", table_name="sim"),
+                    ],
+                    order_types=["DESC", "DESC"],
                 )
             )
         )
