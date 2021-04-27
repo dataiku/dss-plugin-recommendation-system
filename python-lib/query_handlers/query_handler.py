@@ -40,3 +40,6 @@ class QueryHandler:
         for col_name in column_names:
             or_condition = or_condition.or_(condition_method(Column(col_name)))
         select_query.where(or_condition)
+
+    def _build_identity(self, select_query):
+        return select_query
