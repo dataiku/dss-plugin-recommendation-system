@@ -47,11 +47,11 @@ class ScoringHandler(QueryHandler):
 
     def _build_similarity(self, select_from):
         similarity = SelectQuery()
-        similarity.select_from(select_from, alias="c1")
+        similarity.with_cte(select_from, alias="_with_clause_normed_count")
+        similarity.select_from("_with_clause_normed_count", alias="c1")
 
         join_condition = Column(self.pivot_column, "c1").eq_null_unsafe(Column(self.pivot_column, "c2"))
-
-        similarity.join(select_from, JoinTypes.INNER, join_condition, alias="c2")
+        similarity.join("_with_clause_normed_count", JoinTypes.INNER, join_condition, alias="c2")
 
         similarity.where(Column(self.based_column, table_name="c1").ne(Column(self.based_column, table_name="c2")))
 
