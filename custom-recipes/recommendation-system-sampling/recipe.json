@@ -2,7 +2,7 @@
     "meta": {
         "label": "Sampling",
         "description": "Create positive and negative samples from positive user-item samples and scored user-item samples",
-        "icon": "icon-beer"
+        "icon": "icon-minus-sign-alt"
     },
     "kind": "PYTHON",
     "selectableFromDataset": "scored_samples_dataset",
