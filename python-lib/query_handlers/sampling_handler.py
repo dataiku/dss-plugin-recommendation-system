@@ -32,14 +32,14 @@ class SamplingHandler(QueryHandler):
     def _build_samples_for_training(self, select_from):
         samples_for_training = SelectQuery()
         samples_for_training.select_from(select_from, alias="samples_for_training")
-        self._select_columns_list(all_cf_scores, self.sample_keys, table_name="samples_for_training")
+        self._select_columns_list(samples_for_training, self.sample_keys, table_name="samples_for_training")
         samples_for_training.select(Constant(1), alias="is_training_sample")
         return samples_for_training
 
     def _build_samples_for_scoring(self, select_from):
         samples_for_scores = SelectQuery()
         samples_for_scores.select_from(select_from, alias="samples_for_scores")
-        self._select_columns_list(all_cf_scores, self.sample_keys, table_name="samples_for_scores")
+        self._select_columns_list(samples_for_scores, self.sample_keys, table_name="samples_for_scores")
         samples_for_scores.select(Constant(1), alias="is_score_sample")
         return samples_for_scores
 
@@ -96,32 +96,36 @@ class SamplingHandler(QueryHandler):
     def _build_not_sampled(self, select_from):
         return select_from
 
-    def build(self):
-        training_samples_renaming_mapping = {
-            self.dku_config.training_samples_users_column_name: self.dku_config.users_column_name,
-            self.dku_config.training_samples_items_column_name: self.dku_config.items_column_name,
+    def _prepare_samples(self, query_to_prepare, users_col_name, items_col_name, cast_mapping, alias):
+        renaming_mapping = {
+            users_col_name: self.dku_config.users_column_name,
+            items_col_name: self.dku_config.items_column_name,
         }
-        training_samples = self._rename_table(
-            self.file_manager.training_samples_dataset, training_samples_renaming_mapping
+        renamed_samples = self._rename_table(query_to_prepare, renaming_mapping)
+        cast_samples = self._cast_table(renamed_samples, cast_mapping, alias=alias)
+        return cast_samples
+
+    def build(self):
+        cast_mapping = {self.dku_config.users_column_name: "string", self.dku_config.items_column_name: "string"}
+        prepared_training_samples = self._prepare_samples(
+            query_to_prepare=self.file_manager.training_samples_dataset,
+            users_col_name=self.dku_config.training_samples_users_column_name,
+            items_col_name=self.dku_config.training_samples_items_column_name,
+            cast_mapping=cast_mapping,
+            alias="_training_samples"
         )
 
-        cast_mapping = {self.dku_config.users_column_name: "string", self.dku_config.items_column_name: "string"}
-        training_samples_cast = self._cast_table(training_samples, cast_mapping, alias="_training_samples")
-
-        samples_for_training = self._build_samples_for_training(training_samples_cast)
+        samples_for_training = self._build_samples_for_training(prepared_training_samples)
 
         if self.has_historical_data:
-            historical_samples_renaming_mapping = {
-                self.dku_config.historical_samples_users_column_name: self.dku_config.users_column_name,
-                self.dku_config.historical_samples_items_column_name: self.dku_config.items_column_name,
-            }
-            historical_samples = self._rename_table(
-                self.file_manager.historical_samples_dataset, historical_samples_renaming_mapping
+            prepared_historical_samples = self._prepare_samples(
+                query_to_prepare=self.file_manager.historical_samples_dataset,
+                users_col_name=self.dku_config.historical_samples_users_column_name,
+                items_col_name=self.dku_config.historical_samples_items_column_name,
+                cast_mapping=cast_mapping,
+                alias="_historical_samples"
             )
-
-            historical_samples_cast = self._cast_table(historical_samples, cast_mapping, alias="_historical_samples")
-
-            samples_for_scores = self._build_samples_for_scoring(historical_samples_cast)
+            samples_for_scores = self._build_samples_for_scoring(prepared_historical_samples)
         else:
             samples_for_scores = None
 
