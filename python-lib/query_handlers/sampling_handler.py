@@ -5,6 +5,11 @@ import dku_constants as constants
 
 
 class SamplingHandler(QueryHandler):
+    IS_TRAINING_SAMPLE = "_is_training_sample"
+    IS_SCORE_SAMPLE = "_is_score_sample"
+    TARGET = "target"
+    SCORE_SAMPLE = "score_sample"
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.has_historical_data = bool(self.file_manager.historical_samples_dataset)
@@ -32,18 +37,18 @@ class SamplingHandler(QueryHandler):
         else:
             self.postfiltering_func = self._build_not_sampled
 
-    def _build_samples_for_training(self, select_from):
+    def _build_samples_for_training(self, select_from, select_from_as="_samples_for_training"):
         samples_for_training = SelectQuery()
-        samples_for_training.select_from(select_from, alias="samples_for_training")
-        self._select_columns_list(samples_for_training, self.sample_keys, table_name="samples_for_training")
-        samples_for_training.select(Constant(1), alias="is_training_sample")
+        samples_for_training.select_from(select_from, alias=select_from_as)
+        self._select_columns_list(samples_for_training, self.sample_keys, table_name=select_from_as)
+        samples_for_training.select(Constant(1), alias=self.IS_TRAINING_SAMPLE)
         return samples_for_training
 
-    def _build_samples_for_scoring(self, select_from):
+    def _build_samples_for_scoring(self, select_from, select_from_as="_samples_for_scores"):
         samples_for_scores = SelectQuery()
-        samples_for_scores.select_from(select_from, alias="samples_for_scores")
-        self._select_columns_list(samples_for_scores, self.sample_keys, table_name="samples_for_scores")
-        samples_for_scores.select(Constant(1), alias="is_score_sample")
+        samples_for_scores.select_from(select_from, alias=select_from_as)
+        self._select_columns_list(samples_for_scores, self.sample_keys, table_name=select_from_as)
+        samples_for_scores.select(Constant(1), alias=self.IS_SCORE_SAMPLE)
         return samples_for_scores
 
     def _left_join_samples(self, left_select_query, left_table_name, right_select_query, right_table_name):
@@ -52,43 +57,53 @@ class SamplingHandler(QueryHandler):
         ]
         left_select_query.join(right_select_query, JoinTypes.LEFT, join_conditions, alias=right_table_name)
 
-    def _build_all_cf_scores(self, select_from, samples_for_training, samples_for_scores=None):
+    def _build_all_cf_scores(
+        self,
+        select_from,
+        samples_for_training,
+        samples_for_scores=None,
+        select_from_as="_all_cf_scores",
+        samples_for_training_as="_samples_for_training",
+        samples_for_scores_as="_samples_for_scores",
+    ):
         all_cf_scores = SelectQuery()
-        all_cf_scores.select_from(select_from, alias="all_cf_scores")
+        all_cf_scores.select_from(select_from, alias=select_from_as)
 
-        self._left_join_samples(all_cf_scores, "all_cf_scores", samples_for_training, "samples_for_training_to_join")
-        all_cf_scores.select(Column("is_training_sample", table_name="samples_for_training_to_join"))
+        self._left_join_samples(all_cf_scores, select_from_as, samples_for_training, samples_for_training_as)
+        all_cf_scores.select(Column(self.IS_TRAINING_SAMPLE, table_name=samples_for_training_as))
 
         if samples_for_scores:
-            self._left_join_samples(all_cf_scores, "all_cf_scores", samples_for_scores, "samples_for_scores_to_join")
-            all_cf_scores.select(Column("is_score_sample", table_name="samples_for_scores_to_join"))
+            self._left_join_samples(all_cf_scores, select_from_as, samples_for_scores, samples_for_scores_as)
+            all_cf_scores.select(Column(self.IS_SCORE_SAMPLE, table_name=samples_for_scores_as))
 
         columns_to_select = self.sample_keys + self.dku_config.score_column_names
-        self._select_columns_list(all_cf_scores, columns_to_select, table_name="all_cf_scores")
+        self._select_columns_list(all_cf_scores, columns_to_select, table_name=select_from_as)
         return all_cf_scores
 
-    def _build_all_cf_scores_with_target(self, select_from):
+    def _build_all_cf_scores_with_target(self, select_from, select_from_as="_all_cf_scores_with_target"):
         all_cf_scores_with_target = SelectQuery()
-        all_cf_scores_with_target.select_from(select_from, alias="all_cf_scores_with_target")
+        all_cf_scores_with_target.select_from(select_from, alias=select_from_as)
         columns_to_select = self.sample_keys + self.dku_config.score_column_names
         self._select_columns_list(select_query=all_cf_scores_with_target, column_names=columns_to_select)
-        all_cf_scores_with_target.select(Column("is_training_sample").coalesce(0).cast("int"), alias="target")
+        all_cf_scores_with_target.select(Column(self.IS_TRAINING_SAMPLE).coalesce(0).cast("int"), alias=self.TARGET)
         if self.has_historical_data:
-            all_cf_scores_with_target.select(Column("is_score_sample").coalesce(0).cast("int"), alias="score_sample")
+            all_cf_scores_with_target.select(
+                Column(self.IS_SCORE_SAMPLE).coalesce(0).cast("int"), alias=self.SCORE_SAMPLE
+            )
         return all_cf_scores_with_target
 
-    def _build_remove_historical_samples(self, select_from):
+    def _build_remove_historical_samples(self, select_from, select_from_as="_remove_negative_samples_seen"):
         historical_negative_samples_removed = SelectQuery()
-        historical_negative_samples_removed.select_from(select_from, alias="remove_negative_samples_seen")
-        columns_to_select = self.sample_keys + ["target"] + self.dku_config.score_column_names
+        historical_negative_samples_removed.select_from(select_from, alias=select_from_as)
+        columns_to_select = self.sample_keys + [self.TARGET] + self.dku_config.score_column_names
         self._select_columns_list(select_query=historical_negative_samples_removed, column_names=columns_to_select)
-        unseen_samples_condition = Column("target").eq(Constant(1)).or_(Column("score_sample").eq(Constant(0)))
+        unseen_samples_condition = Column(self.TARGET).eq(Constant(1)).or_(Column(self.SCORE_SAMPLE).eq(Constant(0)))
         historical_negative_samples_removed.where(unseen_samples_condition)
         return historical_negative_samples_removed
 
-    def _build_cf_scores_without_null(self, select_from):
+    def _build_cf_scores_without_null(self, select_from, select_from_as="_all_cf_scores_to_filter"):
         null_scores_filtered = SelectQuery()
-        null_scores_filtered.select_from(select_from, alias="all_cf_scores_to_filter")
+        null_scores_filtered.select_from(select_from, alias=select_from_as)
         columns_to_select = self.sample_keys + self.dku_config.score_column_names
         self._select_columns_list(select_query=null_scores_filtered, column_names=columns_to_select)
         self._or_condition_columns_list(

@@ -27,7 +27,7 @@ class CustomScoringHandler(ScoringHandler):
             f"{self.based_column}_2": "string",
             constants.SIMILARITY_COLUMN_NAME: "double",
         }
-        similarity_cast = self._cast_table(similarity_renamed, cast_mapping, alias="_sim_renamed")
+        similarity_cast = self._cast_table(similarity_renamed, cast_mapping, alias="_similarity_matrix_renamed")
         return similarity_cast
 
     def build(self):
