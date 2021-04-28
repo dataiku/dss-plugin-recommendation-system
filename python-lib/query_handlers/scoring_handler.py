@@ -5,6 +5,8 @@ import dku_constants as constants
 
 
 class ScoringHandler(QueryHandler):
+    VISIT_COUNT_AS = "visit_count"
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -33,8 +35,8 @@ class ScoringHandler(QueryHandler):
         normed_count.select(Column("nb_visit_user", table_name="visit_count"))
         normed_count.select(Column("nb_visit_item", table_name="visit_count"))
 
-        normed_count.select(self._get_visit_normalization("nb_visit_user"), alias="visit_user_normed")
-        normed_count.select(self._get_visit_normalization("nb_visit_item"), alias="visit_item_normed")
+        normed_count.select(self._get_visit_normalization(self.dku_config.users_column_name, Constant(1)), alias="visit_user_normed")
+        normed_count.select(self._get_visit_normalization(self.dku_config.items_column_name, Constant(1)), alias="visit_item_normed")
 
         # keep only items and users with enough visits
         normed_count.where(
@@ -132,11 +134,11 @@ class ScoringHandler(QueryHandler):
         cf_scores = self._build_sum_of_similarity_scores(top_n, normed_count)
         return cf_scores
 
-    def _get_visit_normalization(self, column_to_norm):
+    def _get_visit_normalization(self, column_to_norm, rating_column):
         if self.dku_config.normalization_method == constants.NORMALIZATION_METHOD.L1.value:
-            return Constant(1).div(Column(column_to_norm, table_name="visit_count").sqrt())
-        else:
-            return Constant(1).div(Column(column_to_norm, table_name="visit_count").sqrt())
+            return rating_column.div(rating_column.abs().sum().over(Window(partition_by=[column_to_norm])))
+        elif self.dku_config.normalization_method == constants.NORMALIZATION_METHOD.L2.value:
+            return rating_column.div(rating_column.times(rating_column).sum().over(Window(partition_by=[column_to_norm])).sqrt())
 
     def _get_similarity_formula(self):
         column_to_sum = "visit_user_normed" if self.is_user_based else "visit_item_normed"
