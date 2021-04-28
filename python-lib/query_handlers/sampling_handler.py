@@ -13,13 +13,16 @@ class SamplingHandler(QueryHandler):
         self._set_postfilter_function()
 
     def _set_negative_samples_generation_function(self):
-        if (
-            self.dku_config.negative_samples_generation_mode
-            == constants.NEGATIVE_SAMPLES_GENERATION_MODE.REMOVE_HISTORICAL_SAMPLES
-        ):
-            self.negative_samples_generation_func = self._build_remove_historical_samples
+        if self.has_historical_data:
+            if (
+                self.dku_config.negative_samples_generation_mode
+                == constants.NEGATIVE_SAMPLES_GENERATION_MODE.REMOVE_HISTORICAL_SAMPLES
+            ):
+                self.negative_samples_generation_func = self._build_remove_historical_samples
+            else:
+                self.negative_samples_generation_func = self._build_remove_historical_samples
         else:
-            self.negative_samples_generation_func = self._build_remove_historical_samples
+            self.negative_samples_generation_func = self._build_identity
 
     def _set_postfilter_function(self):
         if self.dku_config.negative_samples_generation_mode == constants.SAMPLING_METHOD.NO_SAMPLING:
@@ -70,7 +73,8 @@ class SamplingHandler(QueryHandler):
         columns_to_select = self.sample_keys + self.dku_config.score_column_names
         self._select_columns_list(select_query=all_cf_scores_with_target, column_names=columns_to_select)
         all_cf_scores_with_target.select(Column("is_training_sample").coalesce(0).cast("int"), alias="target")
-        all_cf_scores_with_target.select(Column("is_score_sample").coalesce(0).cast("int"), alias="score_sample")
+        if self.has_historical_data:
+            all_cf_scores_with_target.select(Column("is_score_sample").coalesce(0).cast("int"), alias="score_sample")
         return all_cf_scores_with_target
 
     def _build_remove_historical_samples(self, select_from):
