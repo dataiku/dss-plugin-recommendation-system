@@ -55,9 +55,9 @@ class SamplingHandler(QueryHandler):
         samples_for_scores.select(Constant(1), alias=self.IS_SCORE_SAMPLE)
         return samples_for_scores
 
-    def _left_join_samples(self, left_select_query, left_table_name, right_select_query, right_table_name):
+    def _left_join_samples(self, left_select_query, left_table_name, right_select_query, right_table_name, keys):
         join_conditions = [
-            Column(k, left_table_name).eq_null_unsafe(Column(k, right_table_name)) for k in self.sample_keys
+            Column(k, left_table_name).eq_null_unsafe(Column(k, right_table_name)) for k in keys
         ]
         left_select_query.join(right_select_query, JoinTypes.LEFT, join_conditions, alias=right_table_name)
 
@@ -73,11 +73,11 @@ class SamplingHandler(QueryHandler):
         all_cf_scores = SelectQuery()
         all_cf_scores.select_from(select_from, alias=select_from_as)
 
-        self._left_join_samples(all_cf_scores, select_from_as, samples_for_training, samples_for_training_as)
+        self._left_join_samples(all_cf_scores, select_from_as, samples_for_training, samples_for_training_as, self.sample_keys)
         all_cf_scores.select(Column(self.IS_TRAINING_SAMPLE, table_name=samples_for_training_as))
 
         if samples_for_scores:
-            self._left_join_samples(all_cf_scores, select_from_as, samples_for_scores, samples_for_scores_as)
+            self._left_join_samples(all_cf_scores, select_from_as, samples_for_scores, samples_for_scores_as, self.sample_keys)
             all_cf_scores.select(Column(self.IS_SCORE_SAMPLE, table_name=samples_for_scores_as))
 
         columns_to_select = self.sample_keys + self.dku_config.score_column_names
@@ -116,45 +116,62 @@ class SamplingHandler(QueryHandler):
         return null_scores_filtered
 
     def _build_filtered_with_perc(self, select_from, select_from_as="_filtered_samples"):
-        ratio = float(self.dku_config.negative_samples_percentage / 100.0)
-        samples_with_only_positives = SelectQuery()
-        samples_with_only_positives.select_from(select_from, "_only_positives")
-        samples_with_only_positives.select(self.dku_config.users_column_name)
-        samples_with_only_positives.select(Column("*").count(), alias="nb_positive_per_user")
-        samples_with_only_positives.where(Column(self.TARGET).eq(Constant(1)))
-        samples_with_only_positives.group_by(Column(self.dku_config.users_column_name))
+        def _build_samples_with_only_positives(inner_select_from, inner_select_from_as="_only_positives"):
+            samples_with_only_positives = SelectQuery()
+            samples_with_only_positives.select_from(inner_select_from, inner_select_from_as)
+            samples_with_only_positives.select(Column(self.dku_config.users_column_name))
+            samples_with_only_positives.select(Column("*").count(), alias="nb_positive_per_user")
+            samples_with_only_positives.where(Column(self.TARGET).eq(Constant(1)))
+            samples_with_only_positives.group_by(Column(self.dku_config.users_column_name))
+            return samples_with_only_positives
 
-        samples_with_all_infos = SelectQuery()
-        samples_with_all_infos.select_from(select_from, alias="_samples_with_all_infos")
+        def _build_samples_with_all_infos(inner_select_from, join_with, inner_select_from_as="_samples_with_all_infos"):
+            samples_with_all_infos = SelectQuery()
+            samples_with_all_infos.select_from(inner_select_from, alias=inner_select_from_as)
 
-        columns_to_select = self.sample_keys + self.dku_config.score_column_names + [self.TARGET]
-        self._select_columns_list(samples_with_all_infos, columns_to_select, table_name="_samples_with_all_infos")
+            columns_to_select = self.sample_keys + self.dku_config.score_column_names + [self.TARGET]
+            self._select_columns_list(samples_with_all_infos, columns_to_select, table_name=inner_select_from_as)
 
-        row_number_expression = (
-            Expression().rowNumber().over(
-                Window(
-                    partition_by=[
-                        Column(self.dku_config.users_column_name, table_name="_samples_with_all_infos"),
-                        Column(self.TARGET, table_name="_samples_with_all_infos"),
-                    ],
-                    order_by=[Column(self.TARGET, table_name="_samples_with_all_infos")],
-                    order_types=["DESC"],
+            row_number_expression = (
+                Expression().rowNumber().over(
+                    Window(
+                        partition_by=[
+                            Column(self.dku_config.users_column_name, table_name=inner_select_from_as),
+                            Column(self.TARGET, table_name=inner_select_from_as),
+                        ],
+                        order_by=[Column(self.TARGET, table_name=inner_select_from_as)],
+                        order_types=["DESC"],
+                    )
                 )
             )
-        )
-        samples_with_all_infos.select(row_number_expression, alias=self.ROW_NUMBER_AS)
-        samples_with_all_infos.select(Column("nb_positive_per_user", table_name="_only_positives"))
+            samples_with_all_infos.select(row_number_expression, alias=self.ROW_NUMBER_AS)
+            samples_with_all_infos.select(Column("nb_positive_per_user", table_name="_only_positives"))
 
-        samples_with_all_infos.select(row_number_expression, alias=self.ROW_NUMBER_AS)
-        self._left_join_samples(samples_with_all_infos, select_from_as, samples_with_only_positives, "_only_positives")
+            self._left_join_samples(
+                left_select_query=samples_with_all_infos,
+                left_table_name=inner_select_from_as,
+                right_select_query=join_with,
+                right_table_name="_only_positives",
+                keys=[self.dku_config.users_column_name])
+            return samples_with_all_infos
 
-        filtered_samples = SelectQuery()
-        filtered_samples.select_from(samples_with_all_infos, "_all_infos")
-        self._select_columns_list(filtered_samples, columns_to_select, table_name="_all_infos")
-        nb_negative_threshold_expr = Column("nb_positive_per_user", table_name="_all_infos").times(
-            Constant(ratio)).div(Constant(1).minus(Constant(ratio))).ceil()
-        filtered_samples.where(Column("target", table_name="_all_infos").eq(Constant(1)).or_(
-            Column(self.ROW_NUMBER_AS, table_name="_all_infos").le(nb_negative_threshold_expr)))
+        def _build_filtered_samples(inner_select_from, inner_select_from_as):
+            ratio = float(self.dku_config.negative_samples_percentage / 100.0)
+            filtered_samples = SelectQuery()
+            filtered_samples.select_from(inner_select_from, inner_select_from_as)
+            columns_to_select = self.sample_keys + self.dku_config.score_column_names + [self.TARGET]
+            self._select_columns_list(filtered_samples, columns_to_select)
+
+            nb_negative_threshold_expr = Column("nb_positive_per_user", table_name=select_from_as).times(
+                Constant(ratio)).div(Constant(1).minus(Constant(ratio))).ceil()
+            filtered_samples.where(Column(self.TARGET, table_name=select_from_as).eq(Constant(1)).or_(
+                Column(self.ROW_NUMBER_AS, table_name=select_from_as).le(nb_negative_threshold_expr)))
+            return filtered_samples
+
+        samples_with_only_positives = _build_samples_with_only_positives(select_from)
+        samples_with_all_infos = _build_samples_with_all_infos(select_from, samples_with_only_positives)
+        filtered_samples = _build_filtered_samples(samples_with_all_infos, select_from_as)
+
         return filtered_samples
 
     def _build_not_sampled(self, select_from):
