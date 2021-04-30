@@ -23,7 +23,7 @@ class NEGATIVE_SAMPLES_GENERATION_MODE(Enum):
 
 class SAMPLING_METHOD(Enum):
     NO_SAMPLING = "no_sampling"
-    NEGATIVE_SAMPLING_PERC = "negative_sampling_percentage"
+    NEGATIVE_SAMPLING_PERC = "negative_samples_percentage"
 
 
 class CF_METHOD(Enum):

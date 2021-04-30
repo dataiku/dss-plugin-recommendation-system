@@ -1,6 +1,5 @@
 from query_handlers import QueryHandler
 from dataiku.sql import JoinTypes, Expression, Column, Constant, InlineSQL, SelectQuery, Table, Dialects, toSQL, Window
-from dataiku.core.sql import SQLExecutor2
 import dku_constants as constants
 
 
@@ -9,6 +8,8 @@ class SamplingHandler(QueryHandler):
     IS_SCORE_SAMPLE = "_is_score_sample"
     TARGET = "target"
     SCORE_SAMPLE = "score_sample"
+    ROW_NUMBER_AS = "_row_number"
+    NB_VISIT_USER_AS = "_nb_visit_user"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -30,9 +31,12 @@ class SamplingHandler(QueryHandler):
             self.negative_samples_generation_func = self._build_identity
 
     def _set_postfilter_function(self):
-        if self.dku_config.negative_samples_generation_mode == constants.SAMPLING_METHOD.NO_SAMPLING:
+        print("self.dku_config.sampling_method", self.dku_config.sampling_method)
+        print("constants.SAMPLING_METHOD.NEGATIVE_SAMPLING_PERC", constants.SAMPLING_METHOD.NEGATIVE_SAMPLING_PERC)
+        if self.dku_config.sampling_method == constants.SAMPLING_METHOD.NO_SAMPLING:
             self.postfiltering_func = self._build_not_sampled
-        elif self.dku_config.negative_samples_generation_mode == constants.SAMPLING_METHOD.NEGATIVE_SAMPLING_PERC:
+        elif self.dku_config.sampling_method == constants.SAMPLING_METHOD.NEGATIVE_SAMPLING_PERC:
+            print("okok")
             self.postfiltering_func = self._build_filtered_with_perc
         else:
             self.postfiltering_func = self._build_not_sampled
@@ -111,11 +115,50 @@ class SamplingHandler(QueryHandler):
         )
         return null_scores_filtered
 
-    def _build_filtered_with_perc(self, select_from):
-        return select_from
+    def _build_filtered_with_perc(self, select_from, select_from_as="_filtered_samples"):
+        ratio = float(self.dku_config.negative_samples_percentage / 100.0)
+        samples_with_only_positives = SelectQuery()
+        samples_with_only_positives.select_from(select_from, "_only_positives")
+        samples_with_only_positives.select(self.dku_config.users_column_name)
+        samples_with_only_positives.select(Column("*").count(), alias="nb_positive_per_user")
+        samples_with_only_positives.where(Column(self.TARGET).eq(Constant(1)))
+        samples_with_only_positives.group_by(Column(self.dku_config.users_column_name))
+
+        samples_with_all_infos = SelectQuery()
+        samples_with_all_infos.select_from(select_from, alias="_samples_with_all_infos")
+
+        columns_to_select = self.sample_keys + self.dku_config.score_column_names + [self.TARGET]
+        self._select_columns_list(samples_with_all_infos, columns_to_select, table_name="_samples_with_all_infos")
+
+        row_number_expression = (
+            Expression().rowNumber().over(
+                Window(
+                    partition_by=[
+                        Column(self.dku_config.users_column_name, table_name="_samples_with_all_infos"),
+                        Column(self.TARGET, table_name="_samples_with_all_infos"),
+                    ],
+                    order_by=[Column(self.TARGET, table_name="_samples_with_all_infos")],
+                    order_types=["DESC"],
+                )
+            )
+        )
+        samples_with_all_infos.select(row_number_expression, alias=self.ROW_NUMBER_AS)
+        samples_with_all_infos.select(Column("nb_positive_per_user", table_name="_only_positives"))
+
+        samples_with_all_infos.select(row_number_expression, alias=self.ROW_NUMBER_AS)
+        self._left_join_samples(samples_with_all_infos, select_from_as, samples_with_only_positives, "_only_positives")
+
+        filtered_samples = SelectQuery()
+        filtered_samples.select_from(samples_with_all_infos, "_all_infos")
+        self._select_columns_list(filtered_samples, columns_to_select, table_name="_all_infos")
+        nb_negative_threshold_expr = Column("nb_positive_per_user", table_name="_all_infos").times(
+            Constant(ratio)).div(Constant(1).minus(Constant(ratio))).ceil()
+        filtered_samples.where(Column("target", table_name="_all_infos").eq(Constant(1)).or_(
+            Column(self.ROW_NUMBER_AS, table_name="_all_infos").le(nb_negative_threshold_expr)))
+        return filtered_samples
 
     def _build_not_sampled(self, select_from):
-        return select_from
+        return self._build_identity(select_from)
 
     def _prepare_samples(self, query_to_prepare, users_col_name, items_col_name, cast_mapping, alias):
         renaming_mapping = {
@@ -159,6 +202,7 @@ class SamplingHandler(QueryHandler):
 
         all_cf_scores = self._build_all_cf_scores(null_scores_filtered, samples_for_training, samples_for_scores)
         all_cf_scores_with_target = self._build_all_cf_scores_with_target(all_cf_scores)
+
         scores_with_negative_samples = self.negative_samples_generation_func(all_cf_scores_with_target)
         negative_samples_filtered = self.postfiltering_func(scores_with_negative_samples)
 
