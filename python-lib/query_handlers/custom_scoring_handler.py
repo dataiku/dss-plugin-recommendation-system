@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 class CustomScoringHandler(ScoringHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.is_user_based = self.dku_config.similarity_scores_type == constants.SIMILARITY_TYPE.USER_SIMILARITY.value
+        self.is_user_based = self.dku_config.similarity_scores_type == constants.SIMILARITY_TYPE.USER_SIMILARITY
         self._assign_scoring_mode(self.is_user_based)
 
     def _prepare_similarity_input(self):

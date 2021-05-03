@@ -7,7 +7,6 @@ from dku_constants import (
     CF_METHOD,
     NEGATIVE_SAMPLES_GENERATION_MODE,
 )
-from dku_utils import list_enum_values
 
 
 def create_dku_config(recipe_id, config):

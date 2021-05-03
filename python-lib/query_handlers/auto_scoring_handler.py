@@ -1,6 +1,4 @@
 from query_handlers import ScoringHandler
-from dataiku.sql import JoinTypes, Expression, Column, Constant, InlineSQL, SelectQuery, Table, Dialects, toSQL, Window
-from dataiku.core.sql import SQLExecutor2
 import dku_constants as constants
 import logging
 
@@ -10,7 +8,7 @@ logger = logging.getLogger(__name__)
 class AutoScoringHandler(ScoringHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.is_user_based = self.dku_config.collaborative_filtering_method == constants.CF_METHOD.USER_BASED.value
+        self.is_user_based = self.dku_config.collaborative_filtering_method == constants.CF_METHOD.USER_BASED
         self._assign_scoring_mode(self.is_user_based)
         self.output_similarity_matrix = self.file_manager.similarity_scores_dataset is not None
 
