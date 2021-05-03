@@ -1,6 +1,4 @@
 from query_handlers import ScoringHandler
-from dataiku.sql import JoinTypes, Expression, Column, Constant, InlineSQL, SelectQuery, Table, Dialects, toSQL, Window
-from dataiku.core.sql import SQLExecutor2
 import dku_constants as constants
 import logging
 
