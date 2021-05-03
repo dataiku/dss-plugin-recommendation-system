@@ -16,12 +16,15 @@ class ScoringHandler(QueryHandler):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.sample_keys = [self.dku_config.users_column_name, self.dku_config.items_column_name]
 
     def _build_visit_count(self, select_from, select_from_as="_prepared_input_dataset"):
         # total user and item visits
         visit_count = SelectQuery()
         visit_count.select_from(select_from, alias=select_from_as)
-        visit_count.select(Column("*"))
+
+        self._select_columns_list(visit_count, column_names=self.sample_keys, table_name=select_from_as)
+
         visit_count.select(
             Column("*").count().over(Window(partition_by=[Column(self.dku_config.users_column_name)])),
             alias=self.NB_VISIT_USER_AS,
@@ -37,10 +40,8 @@ class ScoringHandler(QueryHandler):
         normed_count = SelectQuery()
         normed_count.select_from(select_from, alias=select_from_as)
 
-        normed_count.select(Column(self.dku_config.users_column_name, table_name=select_from_as))
-        normed_count.select(Column(self.dku_config.items_column_name, table_name=select_from_as))
-        normed_count.select(Column(self.NB_VISIT_USER_AS, table_name=select_from_as))
-        normed_count.select(Column(self.NB_VISIT_ITEM_AS, table_name=select_from_as))
+        columns_to_select = self.sample_keys + [self.NB_VISIT_USER_AS, self.NB_VISIT_ITEM_AS]
+        self._select_columns_list(normed_count, column_names=columns_to_select, table_name=select_from_as)
 
         normed_count.select(
             self._get_visit_normalization(Column(self.dku_config.users_column_name), Constant(1)),
@@ -93,9 +94,8 @@ class ScoringHandler(QueryHandler):
         row_numbers = SelectQuery()
         row_numbers.select_from(select_from, alias=select_from_as)
 
-        row_numbers.select(Column(f"{self.based_column}_1", table_name=select_from_as))
-        row_numbers.select(Column(f"{self.based_column}_2", table_name=select_from_as))
-        row_numbers.select(Column(constants.SIMILARITY_COLUMN_NAME, table_name=select_from_as))
+        columns_to_select = [f"{self.based_column}_1", f"{self.based_column}_2", constants.SIMILARITY_COLUMN_NAME]
+        self._select_columns_list(row_numbers, column_names=columns_to_select, table_name=select_from_as)
 
         row_number_expression = (
             Expression()
@@ -118,9 +118,8 @@ class ScoringHandler(QueryHandler):
         top_n = SelectQuery()
         top_n.select_from(select_from, alias=select_from_as)
 
-        top_n.select(Column(f"{self.based_column}_1", table_name=select_from_as))
-        top_n.select(Column(f"{self.based_column}_2", table_name=select_from_as))
-        top_n.select(Column(constants.SIMILARITY_COLUMN_NAME, table_name=select_from_as))
+        columns_to_select = [f"{self.based_column}_1", f"{self.based_column}_2", constants.SIMILARITY_COLUMN_NAME]
+        self._select_columns_list(top_n, column_names=columns_to_select, table_name=select_from_as)
 
         top_n.where(
             Column(self.ROW_NUMBER_AS, table_name=select_from_as).le(Constant(self.dku_config.top_n_most_similar))
@@ -165,9 +164,9 @@ class ScoringHandler(QueryHandler):
         return cf_scores
 
     def _get_visit_normalization(self, column_to_norm, rating_column):
-        if self.dku_config.normalization_method == constants.NORMALIZATION_METHOD.L1.value:
+        if self.dku_config.normalization_method == constants.NORMALIZATION_METHOD.L1:
             return rating_column.div(rating_column.abs().sum().over(Window(partition_by=[column_to_norm])))
-        elif self.dku_config.normalization_method == constants.NORMALIZATION_METHOD.L2.value:
+        elif self.dku_config.normalization_method == constants.NORMALIZATION_METHOD.L2:
             return rating_column.div(
                 rating_column.times(rating_column).sum().over(Window(partition_by=[column_to_norm])).sqrt()
             )
