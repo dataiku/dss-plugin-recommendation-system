@@ -17,13 +17,17 @@ class ScoringHandler(QueryHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.sample_keys = [self.dku_config.users_column_name, self.dku_config.items_column_name]
+        self.use_explicit = bool(self.dku_config.ratings_column_name)
 
     def _build_visit_count(self, select_from, select_from_as="_prepared_input_dataset"):
         # total user and item visits
         visit_count = SelectQuery()
         visit_count.select_from(select_from, alias=select_from_as)
 
-        self._select_columns_list(visit_count, column_names=self.sample_keys, table_name=select_from_as)
+        columns_to_select = self.sample_keys
+        if self.use_explicit:
+            columns_to_select += [self.dku_config.ratings_column_name]
+        self._select_columns_list(visit_count, column_names=columns_to_select, table_name=select_from_as)
 
         visit_count.select(
             Column("*").count().over(Window(partition_by=[Column(self.dku_config.users_column_name)])),
@@ -43,12 +47,16 @@ class ScoringHandler(QueryHandler):
         columns_to_select = self.sample_keys + [self.NB_VISIT_USER_AS, self.NB_VISIT_ITEM_AS]
         self._select_columns_list(normed_count, column_names=columns_to_select, table_name=select_from_as)
 
+        rating_column = (
+            Column(self.dku_config.ratings_column_name) if self.dku_config.ratings_column_name else Constant(1)
+        )
+
         normed_count.select(
-            self._get_visit_normalization(Column(self.dku_config.users_column_name), Constant(1)),
+            self._get_visit_normalization(Column(self.dku_config.users_column_name), rating_column),
             alias=self.VISIT_USER_NORMED_AS,
         )
         normed_count.select(
-            self._get_visit_normalization(Column(self.dku_config.items_column_name), Constant(1)),
+            self._get_visit_normalization(Column(self.dku_config.items_column_name), rating_column),
             alias=self.VISIT_ITEM_NORMED_AS,
         )
 
@@ -152,6 +160,8 @@ class ScoringHandler(QueryHandler):
     def _prepare_samples(self):
         samples_dataset = self.file_manager.samples_dataset
         cast_mapping = {self.dku_config.users_column_name: "string", self.dku_config.items_column_name: "string"}
+        if self.use_explicit:
+            cast_mapping[self.dku_config.ratings_column_name] = "double"
         samples_cast = self._cast_table(samples_dataset, cast_mapping, alias="_raw_input_dataset")
         visit_count = self._build_visit_count(samples_cast)
         normed_count = self._build_normed_count(visit_count)
