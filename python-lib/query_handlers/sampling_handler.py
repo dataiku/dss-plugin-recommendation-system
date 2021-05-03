@@ -56,9 +56,7 @@ class SamplingHandler(QueryHandler):
         return samples_for_scores
 
     def _left_join_samples(self, left_select_query, left_table_name, right_select_query, right_table_name, keys):
-        join_conditions = [
-            Column(k, left_table_name).eq_null_unsafe(Column(k, right_table_name)) for k in keys
-        ]
+        join_conditions = [Column(k, left_table_name).eq_null_unsafe(Column(k, right_table_name)) for k in keys]
         left_select_query.join(right_select_query, JoinTypes.LEFT, join_conditions, alias=right_table_name)
 
     def _build_all_cf_scores(
@@ -73,11 +71,15 @@ class SamplingHandler(QueryHandler):
         all_cf_scores = SelectQuery()
         all_cf_scores.select_from(select_from, alias=select_from_as)
 
-        self._left_join_samples(all_cf_scores, select_from_as, samples_for_training, samples_for_training_as, self.sample_keys)
+        self._left_join_samples(
+            all_cf_scores, select_from_as, samples_for_training, samples_for_training_as, self.sample_keys
+        )
         all_cf_scores.select(Column(self.IS_TRAINING_SAMPLE, table_name=samples_for_training_as))
 
         if samples_for_scores:
-            self._left_join_samples(all_cf_scores, select_from_as, samples_for_scores, samples_for_scores_as, self.sample_keys)
+            self._left_join_samples(
+                all_cf_scores, select_from_as, samples_for_scores, samples_for_scores_as, self.sample_keys
+            )
             all_cf_scores.select(Column(self.IS_SCORE_SAMPLE, table_name=samples_for_scores_as))
 
         columns_to_select = self.sample_keys + self.dku_config.score_column_names
@@ -133,7 +135,9 @@ class SamplingHandler(QueryHandler):
             self._select_columns_list(samples_with_all_infos, columns_to_select, table_name=inner_select_from_as)
 
             row_number_expression = (
-                Expression().rowNumber().over(
+                Expression()
+                .rowNumber()
+                .over(
                     Window(
                         partition_by=[
                             Column(self.dku_config.users_column_name, table_name=inner_select_from_as),
@@ -152,7 +156,8 @@ class SamplingHandler(QueryHandler):
                 left_table_name=inner_select_from_as,
                 right_select_query=join_with,
                 right_table_name="_only_positives",
-                keys=[self.dku_config.users_column_name])
+                keys=[self.dku_config.users_column_name],
+            )
             return samples_with_all_infos
 
         def _build_filtered_samples(inner_select_from, inner_select_from_as):
@@ -162,10 +167,17 @@ class SamplingHandler(QueryHandler):
             columns_to_select = self.sample_keys + self.dku_config.score_column_names + [self.TARGET]
             self._select_columns_list(filtered_samples, columns_to_select)
 
-            nb_negative_threshold_expr = Column("nb_positive_per_user", table_name=select_from_as).times(
-                Constant(ratio)).div(Constant(1).minus(Constant(ratio))).ceil()
-            filtered_samples.where(Column(self.TARGET, table_name=select_from_as).eq(Constant(1)).or_(
-                Column(self.ROW_NUMBER_AS, table_name=select_from_as).le(nb_negative_threshold_expr)))
+            nb_negative_threshold_expr = (
+                Column("nb_positive_per_user", table_name=select_from_as)
+                .times(Constant(ratio))
+                .div(Constant(1).minus(Constant(ratio)))
+                .ceil()
+            )
+            filtered_samples.where(
+                Column(self.TARGET, table_name=select_from_as)
+                .eq(Constant(1))
+                .or_(Column(self.ROW_NUMBER_AS, table_name=select_from_as).le(nb_negative_threshold_expr))
+            )
             return filtered_samples
 
         samples_with_only_positives = _build_samples_with_only_positives(select_from)
