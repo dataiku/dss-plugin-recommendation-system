@@ -183,10 +183,14 @@ class ScoringHandler(QueryHandler):
 
     def _get_similarity_formula(self):
         column_to_sum = self.VISIT_USER_NORMED_AS if self.is_user_based else self.VISIT_ITEM_NORMED_AS
+        rounding_expression = Constant(10 ** 17)
         return (
             Column(column_to_sum, table_name=self.LEFT_NORMED_COUNT_AS)
             .times(Column(column_to_sum, table_name=self.RIGHT_NORMED_COUNT_AS))
             .sum()
+            .times(rounding_expression)
+            .round()
+            .div(rounding_expression)
         )
 
     def _assign_scoring_mode(self, is_user_based):
