@@ -95,33 +95,6 @@
         },
         {
             "type": "SEPARATOR",
-            "name": "separator_parameters",
-            "label": "Collaborative filtering parameters"
-        },
-        {
-            "name": "collaborative_filtering_method",
-            "label": "Collaborative filtering method",
-            "type": "SELECT",
-            "defaultValue": "user_based",
-            "selectChoices": [
-                {
-                    "value": "user_based",
-                    "label": "User-based"
-                },
-                {
-                    "value": "item_based",
-                    "label": "Item-based"
-                }
-            ]
-        },
-        {
-            "name": "top_n_most_similar",
-            "label": "Top n most similar to compute scores",
-            "type": "INT",
-            "defaultValue": 10
-        },
-        {
-            "type": "SEPARATOR",
             "name": "separator_preprocessing",
             "label": "Pre-processing parameters"
         },
@@ -152,6 +125,33 @@
                     "label": "L2 normalization"
                 }
             ]
+        },
+        {
+            "type": "SEPARATOR",
+            "name": "separator_parameters",
+            "label": "Collaborative filtering parameters"
+        },
+        {
+            "name": "collaborative_filtering_method",
+            "label": "Collaborative filtering method",
+            "type": "SELECT",
+            "defaultValue": "user_based",
+            "selectChoices": [
+                {
+                    "value": "user_based",
+                    "label": "User-based"
+                },
+                {
+                    "value": "item_based",
+                    "label": "Item-based"
+                }
+            ]
+        },
+        {
+            "name": "top_n_most_similar",
+            "label": "Top n most similar to compute scores",
+            "type": "INT",
+            "defaultValue": 10
         }
     ],
     "resourceKeys": []

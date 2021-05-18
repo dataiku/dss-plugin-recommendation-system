@@ -166,17 +166,6 @@
         },
         {
             "type": "SEPARATOR",
-            "name": "separator_parameters",
-            "label": "Affinity scores parameters"
-        },
-        {
-            "name": "top_n_most_similar",
-            "label": "Top n most similar to compute scores",
-            "type": "INT",
-            "defaultValue": 10
-        },
-        {
-            "type": "SEPARATOR",
             "name": "separator_preprocessing",
             "label": "Preprocessing parameters"
         },
@@ -207,6 +196,17 @@
                     "label": "L2 normalization"
                 }
             ]
+        },
+        {
+            "type": "SEPARATOR",
+            "name": "separator_parameters",
+            "label": "Affinity scores parameters"
+        },
+        {
+            "name": "top_n_most_similar",
+            "label": "Top n most similar to compute scores",
+            "type": "INT",
+            "defaultValue": 10
         }
     ],
     "resourceKeys": []
