@@ -31,12 +31,9 @@ class SamplingHandler(QueryHandler):
             self.negative_samples_generation_func = self._build_identity
 
     def _set_postfilter_function(self):
-        print("self.dku_config.sampling_method", self.dku_config.sampling_method)
-        print("constants.SAMPLING_METHOD.NEGATIVE_SAMPLING_PERC", constants.SAMPLING_METHOD.NEGATIVE_SAMPLING_PERC)
         if self.dku_config.sampling_method == constants.SAMPLING_METHOD.NO_SAMPLING:
             self.postfiltering_func = self._build_not_sampled
         elif self.dku_config.sampling_method == constants.SAMPLING_METHOD.NEGATIVE_SAMPLING_PERC:
-            print("okok")
             self.postfiltering_func = self._build_filtered_with_perc
         else:
             self.postfiltering_func = self._build_not_sampled
