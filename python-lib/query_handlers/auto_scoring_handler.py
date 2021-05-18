@@ -17,6 +17,7 @@ class AutoScoringHandler(ScoringHandler):
         similarity = self._build_similarity(normed_count)
 
         if self.output_similarity_matrix:
+            logger.info("About to compute similarity matrix ...")
             self._execute(similarity, self.file_manager.similarity_scores_dataset)
             similarity = self.file_manager.similarity_scores_dataset
 

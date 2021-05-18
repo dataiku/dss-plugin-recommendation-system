@@ -2,6 +2,9 @@ from query_handlers import QueryHandler
 from dataiku.sql import JoinTypes, Expression, Column, Constant, InlineSQL, SelectQuery, Table, Dialects, toSQL, Window
 from dataiku.core.sql import SQLExecutor2
 import dku_constants as constants
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class ScoringHandler(QueryHandler):
@@ -26,6 +29,7 @@ class ScoringHandler(QueryHandler):
 
         columns_to_select = self.sample_keys
         if self.use_explicit:
+            logger.debug("Using explicit feedbacks")
             columns_to_select += [self.dku_config.ratings_column_name]
         self._select_columns_list(visit_count, column_names=columns_to_select, table_name=select_from_as)
 
@@ -175,15 +179,19 @@ class ScoringHandler(QueryHandler):
 
     def _get_visit_normalization(self, column_to_norm, rating_column):
         if self.dku_config.normalization_method == constants.NORMALIZATION_METHOD.L1:
+            logger.debug("Using L1 normalization")
             return rating_column.div(rating_column.abs().sum().over(Window(partition_by=[column_to_norm])))
         elif self.dku_config.normalization_method == constants.NORMALIZATION_METHOD.L2:
+            logger.debug("Using L2 normalization")
             return rating_column.div(
                 rating_column.times(rating_column).sum().over(Window(partition_by=[column_to_norm])).sqrt()
             )
 
     def _get_similarity_formula(self):
+        rounding_decimals = 17
         column_to_sum = self.VISIT_USER_NORMED_AS if self.is_user_based else self.VISIT_ITEM_NORMED_AS
-        rounding_expression = Constant(10 ** 17)
+        rounding_expression = Constant(10 ** rounding_decimals)
+        logger.debug(f"Rounding similarity to {rounding_decimals} decimals")
         return (
             Column(column_to_sum, table_name=self.LEFT_NORMED_COUNT_AS)
             .times(Column(column_to_sum, table_name=self.RIGHT_NORMED_COUNT_AS))
@@ -195,8 +203,10 @@ class ScoringHandler(QueryHandler):
 
     def _assign_scoring_mode(self, is_user_based):
         if is_user_based:
+            logger.debug("Using user-based collaborative filtering")
             self.based_column = self.dku_config.users_column_name
             self.pivot_column = self.dku_config.items_column_name
         else:
+            logger.debug("Using item-based collaborative filtering")
             self.based_column = self.dku_config.items_column_name
             self.pivot_column = self.dku_config.users_column_name

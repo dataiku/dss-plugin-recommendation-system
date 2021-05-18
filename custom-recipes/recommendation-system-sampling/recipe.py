@@ -3,6 +3,10 @@ from dataiku.customrecipe import get_recipe_config
 from dku_constants import RECIPE
 from dku_file_manager import DkuFileManager
 from query_handlers import SamplingHandler
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 
 def create_dku_file_manager():
@@ -15,11 +19,13 @@ def create_dku_file_manager():
 
 
 def run():
+    logger.info("Running recipe Sampling")
     recipe_config = get_recipe_config()
     dku_config = create_dku_config(RECIPE.SAMPLING, recipe_config)
     file_manager = create_dku_file_manager()
     query_handler = SamplingHandler(dku_config, file_manager)
     query_handler.build()
+    logger.info("Recipe done !")
 
 
 run()

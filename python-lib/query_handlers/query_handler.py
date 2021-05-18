@@ -1,5 +1,8 @@
 from dataiku.sql import JoinTypes, Expression, Column, Constant, InlineSQL, SelectQuery, Table, Dialects, toSQL, Window
 from dataiku.core.sql import SQLExecutor2
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class QueryHandler:
@@ -13,9 +16,10 @@ class QueryHandler:
 
     def _execute(self, table, output_dataset):
         query = toSQL(table, dataset=output_dataset)
-        print("query :\n", query)
+        logger.info(f"Executing query:\n{query}")
         sql_executor = SQLExecutor2(dataset=output_dataset)
         sql_executor.exec_recipe_fragment(output_dataset, query)
+        logger.info("Done executing query !")
 
     def _rename_table(self, to_rename, renaming_mapping):
         renamed_table = SelectQuery()

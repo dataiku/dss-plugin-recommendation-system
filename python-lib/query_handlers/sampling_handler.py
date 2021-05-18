@@ -1,6 +1,9 @@
 from query_handlers import QueryHandler
 from dataiku.sql import JoinTypes, Expression, Column, Constant, InlineSQL, SelectQuery, Table, Dialects, toSQL, Window
 import dku_constants as constants
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class SamplingHandler(QueryHandler):
@@ -32,8 +35,10 @@ class SamplingHandler(QueryHandler):
 
     def _set_postfilter_function(self):
         if self.dku_config.sampling_method == constants.SAMPLING_METHOD.NO_SAMPLING:
+            logger.debug("Using no sampling method")
             self.postfiltering_func = self._build_not_sampled
         elif self.dku_config.sampling_method == constants.SAMPLING_METHOD.NEGATIVE_SAMPLING_PERC:
+            logger.debug("Using stratified negative sampling method")
             self.postfiltering_func = self._build_filtered_with_perc
         else:
             self.postfiltering_func = self._build_not_sampled
