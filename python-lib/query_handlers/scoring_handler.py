@@ -188,7 +188,7 @@ class ScoringHandler(QueryHandler):
             )
 
     def _get_similarity_formula(self):
-        rounding_decimals = 17
+        rounding_decimals = 15
         column_to_sum = self.VISIT_USER_NORMED_AS if self.is_user_based else self.VISIT_ITEM_NORMED_AS
         rounding_expression = Constant(10 ** rounding_decimals)
         logger.debug(f"Rounding similarity to {rounding_decimals} decimals")
