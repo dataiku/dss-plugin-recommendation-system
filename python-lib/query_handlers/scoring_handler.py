@@ -23,7 +23,7 @@ class ScoringHandler(QueryHandler):
         self.sample_keys = [self.dku_config.users_column_name, self.dku_config.items_column_name]
         self.precomputation_columns = self.sample_keys
         self.use_explicit = bool(self.dku_config.ratings_column_name)
-        self.timestamp_filtering = bool(self.dku_config.timestamp_column_name)
+        self.timestamp_filtering = bool(self.dku_config.timestamps_column_name)
         if self.use_explicit:
             logger.debug("Using explicit feedbacks")
             self.precomputation_columns += [self.dku_config.ratings_column_name]
@@ -33,7 +33,7 @@ class ScoringHandler(QueryHandler):
             ts_row_numbers = SelectQuery()
             ts_row_numbers.select_from(select_from_inner, alias=select_from_as_inner)
 
-            columns_to_select = self.precomputation_columns + [self.dku_config.timestamp_column_name]
+            columns_to_select = self.precomputation_columns + [self.dku_config.timestamps_column_name]
             self._select_columns_list(ts_row_numbers, column_names=columns_to_select, table_name=select_from_as_inner)
 
             ts_row_number_expression = (
@@ -43,17 +43,13 @@ class ScoringHandler(QueryHandler):
                     Window(
                         partition_by=[Column(self.based_column, table_name=select_from_as_inner)],
                         order_by=[
-                            Column(self.dku_config.timestamp_column_name, table_name=select_from_as_inner),
+                            Column(self.dku_config.timestamps_column_name, table_name=select_from_as_inner),
                         ],
                         order_types=["DESC"],
                     )
                 )
             )
             ts_row_numbers.select(ts_row_number_expression, alias=self.TIMESTAMP_FILTERED_ROW_NB)
-            ts_row_numbers.where(
-                Column(self.TIMESTAMP_FILTERED_ROW_NB, table_name=select_from_as_inner).le(
-                    Constant(self.dku_config.top_n_most_recent))
-            )
             return ts_row_numbers
 
         ts_row_numbers = _build_timestamp_filtered_row_number(select_from, select_from_as)
@@ -61,8 +57,13 @@ class ScoringHandler(QueryHandler):
         timestamp_filtered = SelectQuery()
         timestamp_filtered.select_from(ts_row_numbers, alias="_row_number_timestamp")
 
-        columns_to_select = self.all_columns
+        columns_to_select = self.precomputation_columns
         self._select_columns_list(timestamp_filtered, column_names=columns_to_select, table_name="_row_number_timestamp")
+
+        timestamp_filtered.where(
+            Column(self.TIMESTAMP_FILTERED_ROW_NB, table_name="_row_number_timestamp").le(
+                Constant(self.dku_config.top_n_most_recent))
+        )
 
         return timestamp_filtered
 
@@ -207,6 +208,8 @@ class ScoringHandler(QueryHandler):
         cast_mapping = {self.dku_config.users_column_name: "string", self.dku_config.items_column_name: "string"}
         if self.use_explicit:
             cast_mapping[self.dku_config.ratings_column_name] = "double"
+        if self.timestamp_filtering:
+            cast_mapping[self.dku_config.timestamps_column_name] = "date"
         samples_cast = self._cast_table(samples_dataset, cast_mapping, alias="_raw_input_dataset")
         if self.timestamp_filtering:
             timestamp_filtering = self._build_timestamp_filtered(samples_cast)
