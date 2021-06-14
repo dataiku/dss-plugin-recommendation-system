@@ -33,8 +33,8 @@ class ScoringHandler(QueryHandler):
             ts_row_numbers = SelectQuery()
             ts_row_numbers.select_from(select_from_inner, alias=select_from_as_inner)
 
-            columns_to_select = self.precomputation_columns + [self.dku_config.timestamps_column_name]
-            self._select_columns_list(ts_row_numbers, column_names=columns_to_select, table_name=select_from_as_inner)
+            columns_to_select_inner = self.precomputation_columns + [self.dku_config.timestamps_column_name]
+            self._select_columns_list(ts_row_numbers, column_names=columns_to_select_inner, table_name=select_from_as_inner)
 
             ts_row_number_expression = (
                 Expression()
@@ -52,11 +52,11 @@ class ScoringHandler(QueryHandler):
             ts_row_numbers.select(ts_row_number_expression, alias=self.TIMESTAMP_FILTERED_ROW_NB)
             return ts_row_numbers
 
-        ts_row_numbers = _build_timestamp_filtered_row_number(select_from, select_from_as)
+        built_ts_row_numbers = _build_timestamp_filtered_row_number(select_from, select_from_as)
 
         ts_row_numbers_alias = "_ts_row_numbers"
         timestamp_filtered = SelectQuery()
-        timestamp_filtered.select_from(ts_row_numbers, alias=ts_row_numbers_alias)
+        timestamp_filtered.select_from(built_ts_row_numbers, alias=ts_row_numbers_alias)
 
         columns_to_select = self.precomputation_columns
         self._select_columns_list(timestamp_filtered, column_names=columns_to_select, table_name=ts_row_numbers_alias)
