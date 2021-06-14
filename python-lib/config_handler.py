@@ -66,6 +66,7 @@ def add_scoring_config(dku_config, config):
     dku_config.add_param(name="users_column_name", value=config.get("users_column_name"), required=True)
     dku_config.add_param(name="items_column_name", value=config.get("items_column_name"), required=True)
     dku_config.add_param(name="ratings_column_name", value=config.get("ratings_column_name"))
+    dku_config.add_param(name="timestamps_column_name", value=config.get("timestamps_column_name"))
     dku_config.add_param(
         name="top_n_most_similar",
         value=config.get("top_n_most_similar"),
@@ -90,6 +91,12 @@ def add_scoring_config(dku_config, config):
         required=True,
         cast_to=NORMALIZATION_METHOD,
     )
+    dku_config.add_param(
+        name="top_n_most_recent",
+        value=config.get("top_n_most_recent"),
+        required=False,
+        checks=[{"type": "sup", "op": 0}],
+    )
 
 
 def add_custom_collaborative_filtering_config(dku_config, config):
@@ -112,6 +119,5 @@ def add_auto_collaborative_filtering_config(dku_config, config):
     dku_config.add_param(
         name="collaborative_filtering_method",
         value=config.get("collaborative_filtering_method"),
-        required=True,
         cast_to=CF_METHOD,
     )

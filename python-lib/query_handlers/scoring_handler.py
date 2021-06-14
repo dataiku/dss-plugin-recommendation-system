@@ -16,21 +16,62 @@ class ScoringHandler(QueryHandler):
     LEFT_NORMED_COUNT_AS = "_left_normed_count"
     RIGHT_NORMED_COUNT_AS = "_right_normed_count"
     ROW_NUMBER_AS = "_row_number"
+    TIMESTAMP_FILTERED_ROW_NB = "_timestamp_filtered_row_nb"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.sample_keys = [self.dku_config.users_column_name, self.dku_config.items_column_name]
+        self.precomputation_columns = self.sample_keys
         self.use_explicit = bool(self.dku_config.ratings_column_name)
+        self.timestamp_filtering = bool(self.dku_config.timestamp_column_name)
+        if self.use_explicit:
+            logger.debug("Using explicit feedbacks")
+            self.precomputation_columns += [self.dku_config.ratings_column_name]
 
-    def _build_visit_count(self, select_from, select_from_as="_prepared_input_dataset"):
+    def _build_timestamp_filtered(self, select_from, select_from_as="_prepared_input_dataset"):
+        def _build_timestamp_filtered_row_number(select_from_inner, select_from_as_inner):
+            ts_row_numbers = SelectQuery()
+            ts_row_numbers.select_from(select_from_inner, alias=select_from_as_inner)
+
+            columns_to_select = self.precomputation_columns + [self.dku_config.timestamp_column_name]
+            self._select_columns_list(ts_row_numbers, column_names=columns_to_select, table_name=select_from_as_inner)
+
+            ts_row_number_expression = (
+                Expression()
+                    .rowNumber()
+                    .over(
+                    Window(
+                        partition_by=[Column(self.based_column, table_name=select_from_as_inner)],
+                        order_by=[
+                            Column(self.dku_config.timestamp_column_name, table_name=select_from_as_inner),
+                        ],
+                        order_types=["DESC"],
+                    )
+                )
+            )
+            ts_row_numbers.select(ts_row_number_expression, alias=self.TIMESTAMP_FILTERED_ROW_NB)
+            ts_row_numbers.where(
+                Column(self.TIMESTAMP_FILTERED_ROW_NB, table_name=select_from_as_inner).le(
+                    Constant(self.dku_config.top_n_most_recent))
+            )
+            return ts_row_numbers
+
+        ts_row_numbers = _build_timestamp_filtered_row_number(select_from, select_from_as)
+
+        timestamp_filtered = SelectQuery()
+        timestamp_filtered.select_from(ts_row_numbers, alias="_row_number_timestamp")
+
+        columns_to_select = self.all_columns
+        self._select_columns_list(timestamp_filtered, column_names=columns_to_select, table_name="_row_number_timestamp")
+
+        return timestamp_filtered
+
+    def _build_visit_count(self, select_from, select_from_as="_filtered_input_dataset"):
         # total user and item visits
         visit_count = SelectQuery()
         visit_count.select_from(select_from, alias=select_from_as)
 
-        columns_to_select = self.sample_keys
-        if self.use_explicit:
-            logger.debug("Using explicit feedbacks")
-            columns_to_select += [self.dku_config.ratings_column_name]
+        columns_to_select = self.precomputation_columns
         self._select_columns_list(visit_count, column_names=columns_to_select, table_name=select_from_as)
 
         visit_count.select(
@@ -167,7 +208,11 @@ class ScoringHandler(QueryHandler):
         if self.use_explicit:
             cast_mapping[self.dku_config.ratings_column_name] = "double"
         samples_cast = self._cast_table(samples_dataset, cast_mapping, alias="_raw_input_dataset")
-        visit_count = self._build_visit_count(samples_cast)
+        if self.timestamp_filtering:
+            timestamp_filtering = self._build_timestamp_filtered(samples_cast)
+        else:
+            timestamp_filtering = samples_cast
+        visit_count = self._build_visit_count(timestamp_filtering)
         normed_count = self._build_normed_count(visit_count)
         return normed_count
 

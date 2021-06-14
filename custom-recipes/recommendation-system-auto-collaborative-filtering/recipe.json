@@ -152,6 +152,27 @@
             "label": "Top n most similar to compute scores",
             "type": "INT",
             "defaultValue": 10
+        },
+        {
+            "type": "SEPARATOR",
+            "name": "separator_parameters",
+            "label": "Timestamp filtering"
+        },
+        {
+            "name": "timestamps_column_name",
+            "label": "(Optional) Timestamps column",
+            "allowedColumnTypes": [
+                "date"
+            ],
+            "type": "COLUMN",
+            "columnRole": "samples_dataset",
+            "mandatory": false
+        },
+        {
+            "name": "top_n_most_recent",
+            "label": "# most recent to keep",
+            "type": "INT",
+            "defaultValue": 10
         }
     ],
     "resourceKeys": []
