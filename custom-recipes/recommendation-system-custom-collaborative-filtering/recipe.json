@@ -210,24 +210,37 @@
         },
         {
             "type": "SEPARATOR",
+            "name": "expert_mode_sep",
+            "label": "Expert mode"
+        },
+        {
+            "name": "expert_mode",
+            "label": "Expert mode",
+            "type": "BOOLEAN",
+            "defaultValue": false
+        },
+        {
+            "type": "SEPARATOR",
             "name": "separator_parameters",
-            "label": "Timestamp filtering"
+            "label": "Timestamp filtering",
+            "visibilityCondition": "model.expert_mode"
         },
         {
             "name": "timestamps_column_name",
-            "label": "(Optional) Timestamps column",
+            "label": "Timestamps column",
             "allowedColumnTypes": [
                 "date"
             ],
             "type": "COLUMN",
             "columnRole": "samples_dataset",
-            "mandatory": false
+            "mandatory": false,
+            "visibilityCondition": "model.expert_mode"
         },
         {
             "name": "top_n_most_recent",
             "label": "# most recent to keep",
             "type": "INT",
-            "defaultValue": 10
+            "visibilityCondition": "model.expert_mode"
         }
     ],
     "resourceKeys": []
