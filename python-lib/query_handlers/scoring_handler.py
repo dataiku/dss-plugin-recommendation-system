@@ -54,14 +54,15 @@ class ScoringHandler(QueryHandler):
 
         ts_row_numbers = _build_timestamp_filtered_row_number(select_from, select_from_as)
 
+        ts_row_numbers_alias = "_ts_row_numbers"
         timestamp_filtered = SelectQuery()
-        timestamp_filtered.select_from(ts_row_numbers, alias="_row_number_timestamp")
+        timestamp_filtered.select_from(ts_row_numbers, alias=ts_row_numbers_alias)
 
         columns_to_select = self.precomputation_columns
-        self._select_columns_list(timestamp_filtered, column_names=columns_to_select, table_name="_row_number_timestamp")
+        self._select_columns_list(timestamp_filtered, column_names=columns_to_select, table_name=ts_row_numbers_alias)
 
         timestamp_filtered.where(
-            Column(self.TIMESTAMP_FILTERED_ROW_NB, table_name="_row_number_timestamp").le(
+            Column(self.TIMESTAMP_FILTERED_ROW_NB, table_name=ts_row_numbers_alias).le(
                 Constant(self.dku_config.top_n_most_recent))
         )
 
