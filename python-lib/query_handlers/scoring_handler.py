@@ -16,21 +16,71 @@ class ScoringHandler(QueryHandler):
     LEFT_NORMED_COUNT_AS = "_left_normed_count"
     RIGHT_NORMED_COUNT_AS = "_right_normed_count"
     ROW_NUMBER_AS = "_row_number"
+    TIMESTAMP_FILTERED_ROW_NB = "_timestamp_filtered_row_nb"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.sample_keys = [self.dku_config.users_column_name, self.dku_config.items_column_name]
+        self.precomputation_columns = self.sample_keys.copy()
         self.use_explicit = bool(self.dku_config.ratings_column_name)
+        self.timestamp_filtering = bool(self.dku_config.expert_mode and self.dku_config.timestamps_column_name)
+        if self.use_explicit:
+            logger.debug("Using explicit feedbacks")
+            self.precomputation_columns += [self.dku_config.ratings_column_name]
+        if self.timestamp_filtering:
+            logger.debug("Using timestamp filtering")
+            self.precomputation_columns += [self.dku_config.timestamps_column_name]
 
-    def _build_visit_count(self, select_from, select_from_as="_prepared_input_dataset"):
+    def _build_timestamp_filtered(self, select_from, select_from_as="_prepared_input_dataset"):
+        def _build_timestamp_filtered_row_number(select_from_inner, select_from_as_inner):
+            ts_row_numbers = SelectQuery()
+            ts_row_numbers.select_from(select_from_inner, alias=select_from_as_inner)
+
+            self._select_columns_list(
+                ts_row_numbers, column_names=self.precomputation_columns, table_name=select_from_as_inner
+            )
+
+            ts_row_number_expression = (
+                Expression()
+                .rowNumber()
+                .over(
+                    Window(
+                        partition_by=[Column(self.based_column, table_name=select_from_as_inner)],
+                        order_by=[
+                            Column(self.dku_config.timestamps_column_name, table_name=select_from_as_inner),
+                            Column(self.pivot_column, table_name=select_from_as_inner),
+                        ],
+                        order_types=["DESC", "DESC"],
+                    )
+                )
+            )
+            ts_row_numbers.select(ts_row_number_expression, alias=self.TIMESTAMP_FILTERED_ROW_NB)
+            return ts_row_numbers
+
+        built_ts_row_numbers = _build_timestamp_filtered_row_number(select_from, select_from_as)
+
+        ts_row_numbers_alias = "_ts_row_numbers"
+        timestamp_filtered = SelectQuery()
+        timestamp_filtered.select_from(built_ts_row_numbers, alias=ts_row_numbers_alias)
+
+        self._select_columns_list(
+            timestamp_filtered, column_names=self.precomputation_columns, table_name=ts_row_numbers_alias
+        )
+
+        timestamp_filtered.where(
+            Column(self.TIMESTAMP_FILTERED_ROW_NB, table_name=ts_row_numbers_alias).le(
+                Constant(self.dku_config.top_n_most_recent)
+            )
+        )
+
+        return timestamp_filtered
+
+    def _build_visit_count(self, select_from, select_from_as="_filtered_input_dataset"):
         # total user and item visits
         visit_count = SelectQuery()
         visit_count.select_from(select_from, alias=select_from_as)
 
-        columns_to_select = self.sample_keys
-        if self.use_explicit:
-            logger.debug("Using explicit feedbacks")
-            columns_to_select += [self.dku_config.ratings_column_name]
+        columns_to_select = self.precomputation_columns
         self._select_columns_list(visit_count, column_names=columns_to_select, table_name=select_from_as)
 
         visit_count.select(
@@ -48,8 +98,7 @@ class ScoringHandler(QueryHandler):
         normed_count = SelectQuery()
         normed_count.select_from(select_from, alias=select_from_as)
 
-        columns_to_select = self.sample_keys + [self.NB_VISIT_USER_AS, self.NB_VISIT_ITEM_AS]
-        self._select_columns_list(normed_count, column_names=columns_to_select, table_name=select_from_as)
+        self._select_columns_list(normed_count, column_names=self.precomputation_columns, table_name=select_from_as)
 
         rating_column = (
             Column(self.dku_config.ratings_column_name) if self.dku_config.ratings_column_name else Constant(1)
@@ -63,6 +112,8 @@ class ScoringHandler(QueryHandler):
             self._get_visit_normalization(Column(self.dku_config.items_column_name), rating_column),
             alias=self.VISIT_ITEM_NORMED_AS,
         )
+
+        self.precomputation_columns = self.sample_keys.copy() + [self.VISIT_USER_NORMED_AS, self.VISIT_ITEM_NORMED_AS]
 
         # keep only items and users with enough visits
         normed_count.where(
@@ -207,10 +258,18 @@ class ScoringHandler(QueryHandler):
         cast_mapping = {self.dku_config.users_column_name: "string", self.dku_config.items_column_name: "string"}
         if self.use_explicit:
             cast_mapping[self.dku_config.ratings_column_name] = "double"
+        if self.timestamp_filtering:
+            cast_mapping[self.dku_config.timestamps_column_name] = self._get_cast_type(
+                self.dku_config.timestamps_column_name, samples_dataset
+            )
         samples_cast = self._cast_table(samples_dataset, cast_mapping, alias="_raw_input_dataset")
         visit_count = self._build_visit_count(samples_cast)
         normed_count = self._build_normed_count(visit_count)
-        return normed_count
+        if self.timestamp_filtering:
+            timestamp_filtered = self._build_timestamp_filtered(normed_count)
+        else:
+            timestamp_filtered = normed_count
+        return timestamp_filtered
 
     def _build_collaborative_filtering(self, similarity, normed_count):
         row_numbers = self._build_row_numbers(similarity)

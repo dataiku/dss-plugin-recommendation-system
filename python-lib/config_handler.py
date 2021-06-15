@@ -90,6 +90,20 @@ def add_scoring_config(dku_config, config):
         required=True,
         cast_to=NORMALIZATION_METHOD,
     )
+    dku_config.add_param(name="expert_mode", value=config.get("expert_mode", False), required=True)
+
+
+def add_timestamp_filtering(dku_config, config):
+    if dku_config.expert_mode:
+        based_threshold = dku_config["user_visit_threshold"]
+        dku_config.add_param(
+            name="top_n_most_recent",
+            value=config.get("top_n_most_recent"),
+            checks=[
+                {"type": "sup", "op": 0},
+            ],
+        )
+        dku_config.add_param(name="timestamps_column_name", value=config.get("timestamps_column_name"), required=True)
 
 
 def add_custom_collaborative_filtering_config(dku_config, config):
@@ -106,12 +120,15 @@ def add_custom_collaborative_filtering_config(dku_config, config):
         name="similarity_score_column_name", value=config.get("similarity_score_column_name"), required=True
     )
 
+    add_timestamp_filtering(dku_config, config)
+
 
 def add_auto_collaborative_filtering_config(dku_config, config):
     add_scoring_config(dku_config, config)
     dku_config.add_param(
         name="collaborative_filtering_method",
         value=config.get("collaborative_filtering_method"),
-        required=True,
         cast_to=CF_METHOD,
     )
+
+    add_timestamp_filtering(dku_config, config)

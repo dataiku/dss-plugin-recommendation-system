@@ -36,3 +36,14 @@ ITEM_ID_COLUMN_NAME = "item_id"
 RATING_COLUMN_NAME = "rating"
 SCORE_COLUMN_NAME = "score"
 SIMILARITY_COLUMN_NAME = "similarity"
+
+
+DSS_TO_SQL_TYPES = {
+    "date": "date",
+    "tinyint": "int",
+    "smallint": "int",
+    "int": "int",
+    "bigint": "int",
+    "float": "double",
+    "double": "double",
+}

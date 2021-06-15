@@ -207,6 +207,48 @@
             "label": "Top n most similar to compute scores",
             "type": "INT",
             "defaultValue": 10
+        },
+        {
+            "type": "SEPARATOR",
+            "name": "expert_mode_sep",
+            "label": "Expert mode"
+        },
+        {
+            "name": "expert_mode",
+            "label": "Expert mode",
+            "type": "BOOLEAN",
+            "defaultValue": false
+        },
+        {
+            "type": "SEPARATOR",
+            "name": "separator_parameters",
+            "label": "Timestamp filtering",
+            "visibilityCondition": "model.expert_mode"
+        },
+        {
+            "name": "timestamps_column_name",
+            "label": "Timestamps column",
+            "allowedColumnTypes": [
+                "date",
+                "tinyint",
+                "smallint",
+                "int",
+                "bigint",
+                "float",
+                "double"
+            ],
+            "type": "COLUMN",
+            "columnRole": "samples_dataset",
+            "mandatory": false,
+            "visibilityCondition": "model.expert_mode"
+        },
+        {
+            "name": "top_n_most_recent",
+            "label": "# most recent items to keep",
+            "description": "Keep N most recent items per users",
+            "type": "INT",
+            "defaultValue": 20,
+            "visibilityCondition": "model.expert_mode"
         }
     ],
     "resourceKeys": []
