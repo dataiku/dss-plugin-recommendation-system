@@ -34,18 +34,21 @@ class ScoringHandler(QueryHandler):
             ts_row_numbers.select_from(select_from_inner, alias=select_from_as_inner)
 
             columns_to_select_inner = self.precomputation_columns + [self.dku_config.timestamps_column_name]
-            self._select_columns_list(ts_row_numbers, column_names=columns_to_select_inner, table_name=select_from_as_inner)
+            self._select_columns_list(
+                ts_row_numbers, column_names=columns_to_select_inner, table_name=select_from_as_inner
+            )
 
             ts_row_number_expression = (
                 Expression()
-                    .rowNumber()
-                    .over(
+                .rowNumber()
+                .over(
                     Window(
                         partition_by=[Column(self.based_column, table_name=select_from_as_inner)],
                         order_by=[
                             Column(self.dku_config.timestamps_column_name, table_name=select_from_as_inner),
+                            Column(self.pivot_column, table_name=select_from_as_inner),
                         ],
-                        order_types=["DESC"],
+                        order_types=["DESC", "DESC"],
                     )
                 )
             )
@@ -63,7 +66,8 @@ class ScoringHandler(QueryHandler):
 
         timestamp_filtered.where(
             Column(self.TIMESTAMP_FILTERED_ROW_NB, table_name=ts_row_numbers_alias).le(
-                Constant(self.dku_config.top_n_most_recent))
+                Constant(self.dku_config.top_n_most_recent)
+            )
         )
 
         return timestamp_filtered
