@@ -101,11 +101,6 @@ def add_timestamp_filtering(dku_config, config):
             value=config.get("top_n_most_recent"),
             checks=[
                 {"type": "sup", "op": 0},
-                {
-                    "type": "sup_eq",
-                    "op": based_threshold,
-                    "err_msg": "The timestamp filtering value should be superior to the User visit threshold",
-                },
             ],
         )
         dku_config.add_param(name="timestamps_column_name", value=config.get("timestamps_column_name"), required=True)
