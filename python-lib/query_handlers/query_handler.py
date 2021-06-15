@@ -1,5 +1,6 @@
 from dataiku.sql import JoinTypes, Expression, Column, Constant, InlineSQL, SelectQuery, Table, Dialects, toSQL, Window
 from dataiku.core.sql import SQLExecutor2
+import dku_constants as constants
 import logging
 
 logger = logging.getLogger(__name__)
@@ -34,6 +35,11 @@ class QueryHandler:
         for input_column, target_type in cast_mapping.items():
             cast_table.select(Column(input_column, table_name=alias).cast(target_type), alias=input_column)
         return cast_table
+
+    def _get_cast_type(self, column_name, dataset):
+        dataset_schema = dataset.read_schema()
+        column_type = next((column["type"] for column in dataset_schema if column["name"] == column_name), "string")
+        return constants.DSS_TO_SQL_TYPES.get(column_type, "string")
 
     def _select_columns_list(self, select_query, column_names, table_name=None):
         for col_name in column_names:

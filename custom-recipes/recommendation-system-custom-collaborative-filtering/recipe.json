@@ -229,7 +229,13 @@
             "name": "timestamps_column_name",
             "label": "Timestamps column",
             "allowedColumnTypes": [
-                "date"
+                "date",
+                "tinyint",
+                "smallint",
+                "int",
+                "bigint",
+                "float",
+                "double"
             ],
             "type": "COLUMN",
             "columnRole": "samples_dataset",
@@ -238,8 +244,10 @@
         },
         {
             "name": "top_n_most_recent",
-            "label": "# most recent to keep",
+            "label": "# most recent items to keep",
+            "description": "Keep N most recent items per users",
             "type": "INT",
+            "defaultValue": 20,
             "visibilityCondition": "model.expert_mode"
         }
     ],

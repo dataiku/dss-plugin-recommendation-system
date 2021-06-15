@@ -93,8 +93,8 @@ def add_scoring_config(dku_config, config):
     )
 
 
-def add_timestamp_filtering(dku_config, config, based_feature):
-    based_threshold = dku_config["user_visit_threshold" if based_feature == "user" else "item_visit_threshold"]
+def add_timestamp_filtering(dku_config, config):
+    based_threshold = dku_config["user_visit_threshold"]
 
     dku_config.add_param(
         name="top_n_most_recent",
@@ -104,8 +104,8 @@ def add_timestamp_filtering(dku_config, config, based_feature):
             {
                 "type": "sup_eq",
                 "op": based_threshold,
-                "err_msg": f"The timestamp filtering value should be superior to {based_feature.capitalize()} visit threshold"
-            }
+                "err_msg": "The timestamp filtering value should be superior to the User visit threshold",
+            },
         ],
     )
 
@@ -124,8 +124,7 @@ def add_custom_collaborative_filtering_config(dku_config, config):
         name="similarity_score_column_name", value=config.get("similarity_score_column_name"), required=True
     )
 
-    based_feature = "user" if dku_config.similarity_scores_type == SIMILARITY_TYPE.USER_SIMILARITY else "item"
-    add_timestamp_filtering(dku_config, config, based_feature)
+    add_timestamp_filtering(dku_config, config)
 
 
 def add_auto_collaborative_filtering_config(dku_config, config):
@@ -136,5 +135,4 @@ def add_auto_collaborative_filtering_config(dku_config, config):
         cast_to=CF_METHOD,
     )
 
-    based_feature = "user" if dku_config.collaborative_filtering_method == CF_METHOD.USER_BASED else "item"
-    add_timestamp_filtering(dku_config, config, based_feature)
+    add_timestamp_filtering(dku_config, config)

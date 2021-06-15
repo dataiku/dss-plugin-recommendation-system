@@ -214,7 +214,9 @@ class ScoringHandler(QueryHandler):
         if self.use_explicit:
             cast_mapping[self.dku_config.ratings_column_name] = "double"
         if self.timestamp_filtering:
-            cast_mapping[self.dku_config.timestamps_column_name] = "date"
+            cast_mapping[self.dku_config.timestamps_column_name] = self._get_cast_type(
+                self.dku_config.timestamps_column_name, samples_dataset
+            )
         samples_cast = self._cast_table(samples_dataset, cast_mapping, alias="_raw_input_dataset")
         if self.timestamp_filtering:
             timestamp_filtering = self._build_timestamp_filtered(samples_cast)
