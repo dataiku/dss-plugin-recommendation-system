@@ -66,7 +66,6 @@ def add_scoring_config(dku_config, config):
     dku_config.add_param(name="users_column_name", value=config.get("users_column_name"), required=True)
     dku_config.add_param(name="items_column_name", value=config.get("items_column_name"), required=True)
     dku_config.add_param(name="ratings_column_name", value=config.get("ratings_column_name"))
-    dku_config.add_param(name="timestamps_column_name", value=config.get("timestamps_column_name"))
     dku_config.add_param(
         name="top_n_most_similar",
         value=config.get("top_n_most_similar"),
@@ -91,23 +90,25 @@ def add_scoring_config(dku_config, config):
         required=True,
         cast_to=NORMALIZATION_METHOD,
     )
+    dku_config.add_param(name="expert_mode", value=config.get("expert_mode", False), required=True)
 
 
 def add_timestamp_filtering(dku_config, config):
-    based_threshold = dku_config["user_visit_threshold"]
-
-    dku_config.add_param(
-        name="top_n_most_recent",
-        value=config.get("top_n_most_recent"),
-        checks=[
-            {"type": "sup", "op": 0},
-            {
-                "type": "sup_eq",
-                "op": based_threshold,
-                "err_msg": "The timestamp filtering value should be superior to the User visit threshold",
-            },
-        ],
-    )
+    if dku_config.expert_mode:
+        based_threshold = dku_config["user_visit_threshold"]
+        dku_config.add_param(
+            name="top_n_most_recent",
+            value=config.get("top_n_most_recent"),
+            checks=[
+                {"type": "sup", "op": 0},
+                {
+                    "type": "sup_eq",
+                    "op": based_threshold,
+                    "err_msg": "The timestamp filtering value should be superior to the User visit threshold",
+                },
+            ],
+        )
+        dku_config.add_param(name="timestamps_column_name", value=config.get("timestamps_column_name"), required=True)
 
 
 def add_custom_collaborative_filtering_config(dku_config, config):

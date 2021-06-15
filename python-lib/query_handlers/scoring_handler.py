@@ -21,21 +21,23 @@ class ScoringHandler(QueryHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.sample_keys = [self.dku_config.users_column_name, self.dku_config.items_column_name]
-        self.precomputation_columns = self.sample_keys
+        self.precomputation_columns = self.sample_keys.copy()
         self.use_explicit = bool(self.dku_config.ratings_column_name)
-        self.timestamp_filtering = bool(self.dku_config.timestamps_column_name)
+        self.timestamp_filtering = bool(self.dku_config.expert_mode and self.dku_config.timestamps_column_name)
         if self.use_explicit:
             logger.debug("Using explicit feedbacks")
             self.precomputation_columns += [self.dku_config.ratings_column_name]
+        if self.timestamp_filtering:
+            logger.debug("Using timestamp filtering")
+            self.precomputation_columns += [self.dku_config.timestamps_column_name]
 
     def _build_timestamp_filtered(self, select_from, select_from_as="_prepared_input_dataset"):
         def _build_timestamp_filtered_row_number(select_from_inner, select_from_as_inner):
             ts_row_numbers = SelectQuery()
             ts_row_numbers.select_from(select_from_inner, alias=select_from_as_inner)
 
-            columns_to_select_inner = self.precomputation_columns + [self.dku_config.timestamps_column_name]
             self._select_columns_list(
-                ts_row_numbers, column_names=columns_to_select_inner, table_name=select_from_as_inner
+                ts_row_numbers, column_names=self.precomputation_columns, table_name=select_from_as_inner
             )
 
             ts_row_number_expression = (
@@ -61,8 +63,9 @@ class ScoringHandler(QueryHandler):
         timestamp_filtered = SelectQuery()
         timestamp_filtered.select_from(built_ts_row_numbers, alias=ts_row_numbers_alias)
 
-        columns_to_select = self.precomputation_columns
-        self._select_columns_list(timestamp_filtered, column_names=columns_to_select, table_name=ts_row_numbers_alias)
+        self._select_columns_list(
+            timestamp_filtered, column_names=self.precomputation_columns, table_name=ts_row_numbers_alias
+        )
 
         timestamp_filtered.where(
             Column(self.TIMESTAMP_FILTERED_ROW_NB, table_name=ts_row_numbers_alias).le(
@@ -95,8 +98,7 @@ class ScoringHandler(QueryHandler):
         normed_count = SelectQuery()
         normed_count.select_from(select_from, alias=select_from_as)
 
-        columns_to_select = self.sample_keys + [self.NB_VISIT_USER_AS, self.NB_VISIT_ITEM_AS]
-        self._select_columns_list(normed_count, column_names=columns_to_select, table_name=select_from_as)
+        self._select_columns_list(normed_count, column_names=self.precomputation_columns, table_name=select_from_as)
 
         rating_column = (
             Column(self.dku_config.ratings_column_name) if self.dku_config.ratings_column_name else Constant(1)
@@ -110,6 +112,8 @@ class ScoringHandler(QueryHandler):
             self._get_visit_normalization(Column(self.dku_config.items_column_name), rating_column),
             alias=self.VISIT_ITEM_NORMED_AS,
         )
+
+        self.precomputation_columns = self.sample_keys.copy() + [self.VISIT_USER_NORMED_AS, self.VISIT_ITEM_NORMED_AS]
 
         # keep only items and users with enough visits
         normed_count.where(
@@ -218,13 +222,13 @@ class ScoringHandler(QueryHandler):
                 self.dku_config.timestamps_column_name, samples_dataset
             )
         samples_cast = self._cast_table(samples_dataset, cast_mapping, alias="_raw_input_dataset")
-        if self.timestamp_filtering:
-            timestamp_filtering = self._build_timestamp_filtered(samples_cast)
-        else:
-            timestamp_filtering = samples_cast
-        visit_count = self._build_visit_count(timestamp_filtering)
+        visit_count = self._build_visit_count(samples_cast)
         normed_count = self._build_normed_count(visit_count)
-        return normed_count
+        if self.timestamp_filtering:
+            timestamp_filtered = self._build_timestamp_filtered(normed_count)
+        else:
+            timestamp_filtered = normed_count
+        return timestamp_filtered
 
     def _build_collaborative_filtering(self, similarity, normed_count):
         row_numbers = self._build_row_numbers(similarity)
