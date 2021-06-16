@@ -16,7 +16,9 @@ class SamplingHandler(QueryHandler):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.has_historical_data = bool(self.file_manager.historical_samples_dataset)
+        self.has_historical_data = bool(
+            self.file_manager.historical_samples_dataset and self.dku_config.historical_samples
+        )
         self.sample_keys = [self.dku_config.users_column_name, self.dku_config.items_column_name]
         self._set_negative_samples_generation_function()
         self._set_postfilter_function()

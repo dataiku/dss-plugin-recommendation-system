@@ -36,16 +36,19 @@ def add_sampling_config(dku_config, config):
         name="training_samples_items_column_name", value=config.get("training_samples_items_column_name"), required=True
     )
 
-    dku_config.add_param(
-        name="historical_samples_users_column_name",
-        value=config.get("historical_samples_users_column_name"),
-        required=False,
-    )
-    dku_config.add_param(
-        name="historical_samples_items_column_name",
-        value=config.get("historical_samples_items_column_name"),
-        required=False,
-    )
+    dku_config.add_param(name="historical_samples", value=config.get("historical_samples", False), required=True)
+
+    if dku_config.historical_samples:
+        dku_config.add_param(
+            name="historical_samples_users_column_name",
+            value=config.get("historical_samples_users_column_name"),
+            required=True,
+        )
+        dku_config.add_param(
+            name="historical_samples_items_column_name",
+            value=config.get("historical_samples_items_column_name"),
+            required=True,
+        )
 
     dku_config.add_param(
         name="sampling_method", value=config.get("sampling_method"), required=True, cast_to=SAMPLING_METHOD
@@ -101,6 +104,7 @@ def add_timestamp_filtering(dku_config, config):
             checks=[
                 {"type": "sup", "op": 0},
             ],
+            required=True,
         )
         dku_config.add_param(name="timestamps_column_name", value=config.get("timestamps_column_name"), required=True)
 
