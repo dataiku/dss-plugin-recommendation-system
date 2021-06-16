@@ -100,19 +100,22 @@
         },
         {
             "name": "user_visit_threshold",
-            "label": "User visit threshold",
+            "label": "Minimum visits per user",
+            "description": "Keep only users with more item interaction.",
             "type": "INT",
             "defaultValue": 10
         },
         {
             "name": "item_visit_threshold",
-            "label": "Item visit threshold",
+            "label": "Minimum visits per item",
+            "description": "Keep only items with more user interaction.",
             "type": "INT",
             "defaultValue": 10
         },
         {
             "name": "normalization_method",
             "label": "Normalization method",
+            "description": "User-item visits are normalized using the selected method.",
             "type": "SELECT",
             "defaultValue": "l1_normalization",
             "selectChoices": [
@@ -149,20 +152,10 @@
         },
         {
             "name": "top_n_most_similar",
-            "label": "Top n most similar to compute scores",
+            "label": "Nb. of most similar users/items",
+            "description": "Keep only the top N most similar users/items to compute affinity scores.",
             "type": "INT",
             "defaultValue": 10
-        },
-        {
-            "type": "SEPARATOR",
-            "name": "expert_mode_sep",
-            "label": "Expert mode"
-        },
-        {
-            "name": "expert_mode",
-            "label": "Expert mode",
-            "type": "BOOLEAN",
-            "defaultValue": false
         },
         {
             "type": "SEPARATOR",
@@ -171,8 +164,15 @@
             "visibilityCondition": "model.expert_mode"
         },
         {
+            "name": "timestamp_filtering",
+            "label": "Use timestamp filtering",
+            "type": "BOOLEAN",
+            "defaultValue": false
+        },
+        {
             "name": "timestamps_column_name",
-            "label": "Timestamps column",
+            "label": "Timestamp column",
+            "description": "Column used to order items per user (higher values means more recent).",
             "allowedColumnTypes": [
                 "date",
                 "tinyint",
@@ -185,15 +185,15 @@
             "type": "COLUMN",
             "columnRole": "samples_dataset",
             "mandatory": false,
-            "visibilityCondition": "model.expert_mode"
+            "visibilityCondition": "model.timestamp_filtering"
         },
         {
             "name": "top_n_most_recent",
-            "label": "# most recent items to keep",
-            "description": "Keep N most recent items per users",
+            "label": "Nb. of items to keep per user",
+            "description": "Keep only the N most recent items per user based on the timestamp column.",
             "type": "INT",
             "defaultValue": 20,
-            "visibilityCondition": "model.expert_mode"
+            "visibilityCondition": "model.timestamp_filtering"
         }
     ],
     "resourceKeys": []

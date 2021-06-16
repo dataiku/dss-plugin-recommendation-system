@@ -23,7 +23,7 @@ class ScoringHandler(QueryHandler):
         self.sample_keys = [self.dku_config.users_column_name, self.dku_config.items_column_name]
         self.precomputation_columns = self.sample_keys.copy()
         self.use_explicit = bool(self.dku_config.ratings_column_name)
-        self.timestamp_filtering = bool(self.dku_config.expert_mode and self.dku_config.timestamps_column_name)
+        self.timestamp_filtering = bool(self.dku_config.timestamp_filtering and self.dku_config.timestamps_column_name)
         if self.use_explicit:
             logger.debug("Using explicit feedbacks")
             self.precomputation_columns += [self.dku_config.ratings_column_name]

@@ -90,12 +90,11 @@ def add_scoring_config(dku_config, config):
         required=True,
         cast_to=NORMALIZATION_METHOD,
     )
-    dku_config.add_param(name="expert_mode", value=config.get("expert_mode", False), required=True)
+    dku_config.add_param(name="timestamp_filtering", value=config.get("timestamp_filtering", False), required=True)
 
 
 def add_timestamp_filtering(dku_config, config):
-    if dku_config.expert_mode:
-        based_threshold = dku_config["user_visit_threshold"]
+    if dku_config.timestamp_filtering:
         dku_config.add_param(
             name="top_n_most_recent",
             value=config.get("top_n_most_recent"),
@@ -114,8 +113,17 @@ def add_custom_collaborative_filtering_config(dku_config, config):
         required=True,
         cast_to=SIMILARITY_TYPE,
     )
-    dku_config.add_param(name="similarity_column_1_name", value=config.get("similarity_column_1_name"), required=True)
-    dku_config.add_param(name="similarity_column_2_name", value=config.get("similarity_column_2_name"), required=True)
+
+    if dku_config.similarity_scores_type == SIMILARITY_TYPE.USER_SIMILARITY:
+        similarity_column_1_name = config.get("similarity_users_column_1_name")
+        similarity_column_2_name = config.get("similarity_users_column_2_name")
+    elif dku_config.similarity_scores_type == SIMILARITY_TYPE.ITEM_SIMILARITY:
+        similarity_column_1_name = config.get("similarity_items_column_1_name")
+        similarity_column_2_name = config.get("similarity_items_column_2_name")
+
+    dku_config.add_param(name="similarity_column_1_name", value=similarity_column_1_name, required=True)
+    dku_config.add_param(name="similarity_column_2_name", value=similarity_column_2_name, required=True)
+
     dku_config.add_param(
         name="similarity_score_column_name", value=config.get("similarity_score_column_name"), required=True
     )
