@@ -20,8 +20,8 @@ def create_dku_file_manager():
 def run():
     logger.info("Running recipe Custom collaborative filtering")
     recipe_config = get_recipe_config()
-    dku_config = create_dku_config(RECIPE.AFFINITY_SCORE, recipe_config)
     file_manager = create_dku_file_manager()
+    dku_config = create_dku_config(RECIPE.AFFINITY_SCORE, recipe_config, file_manager=file_manager)
     query_handler = CustomScoringHandler(dku_config, file_manager)
     query_handler.build()
     logger.info("Recipe done !")
