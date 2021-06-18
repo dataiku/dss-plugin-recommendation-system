@@ -9,7 +9,6 @@ logger = logging.getLogger(__name__)
 class SamplingHandler(QueryHandler):
     IS_TRAINING_SAMPLE = "_is_training_sample"
     IS_SCORE_SAMPLE = "_is_score_sample"
-    TARGET = "target"
     SCORE_SAMPLE = "score_sample"
     ROW_NUMBER_AS = "_row_number"
     NB_VISIT_USER_AS = "_nb_visit_user"
@@ -93,7 +92,9 @@ class SamplingHandler(QueryHandler):
         all_cf_scores_with_target.select_from(select_from, alias=select_from_as)
         columns_to_select = self.sample_keys + self.dku_config.score_column_names
         self._select_columns_list(select_query=all_cf_scores_with_target, column_names=columns_to_select)
-        all_cf_scores_with_target.select(Column(self.IS_TRAINING_SAMPLE).coalesce(0).cast("int"), alias=self.TARGET)
+        all_cf_scores_with_target.select(
+            Column(self.IS_TRAINING_SAMPLE).coalesce(0).cast("int"), alias=constants.TARGET_COLUMN_NAME
+        )
         if self.has_historical_data:
             all_cf_scores_with_target.select(
                 Column(self.IS_SCORE_SAMPLE).coalesce(0).cast("int"), alias=self.SCORE_SAMPLE
@@ -103,9 +104,11 @@ class SamplingHandler(QueryHandler):
     def _build_remove_historical_samples(self, select_from, select_from_as="_remove_negative_samples_seen"):
         historical_negative_samples_removed = SelectQuery()
         historical_negative_samples_removed.select_from(select_from, alias=select_from_as)
-        columns_to_select = self.sample_keys + [self.TARGET] + self.dku_config.score_column_names
+        columns_to_select = self.sample_keys + [constants.TARGET_COLUMN_NAME] + self.dku_config.score_column_names
         self._select_columns_list(select_query=historical_negative_samples_removed, column_names=columns_to_select)
-        unseen_samples_condition = Column(self.TARGET).eq(Constant(1)).or_(Column(self.SCORE_SAMPLE).eq(Constant(0)))
+        unseen_samples_condition = (
+            Column(constants.TARGET_COLUMN_NAME).eq(Constant(1)).or_(Column(self.SCORE_SAMPLE).eq(Constant(0)))
+        )
         historical_negative_samples_removed.where(unseen_samples_condition)
         return historical_negative_samples_removed
 
@@ -129,7 +132,7 @@ class SamplingHandler(QueryHandler):
             samples_with_only_positives.select_from(inner_select_from, inner_select_from_as)
             samples_with_only_positives.select(Column(self.dku_config.users_column_name))
             samples_with_only_positives.select(Column("*").count(), alias=NB_POSITIVE_PER_USER)
-            samples_with_only_positives.where(Column(self.TARGET).eq(Constant(1)))
+            samples_with_only_positives.where(Column(constants.TARGET_COLUMN_NAME).eq(Constant(1)))
             samples_with_only_positives.group_by(Column(self.dku_config.users_column_name))
             return samples_with_only_positives
 
@@ -137,7 +140,7 @@ class SamplingHandler(QueryHandler):
             samples_with_all_infos = SelectQuery()
             samples_with_all_infos.select_from(inner_select_from, alias=inner_select_from_as)
 
-            columns_to_select = self.sample_keys + self.dku_config.score_column_names + [self.TARGET]
+            columns_to_select = self.sample_keys + self.dku_config.score_column_names + [constants.TARGET_COLUMN_NAME]
             self._select_columns_list(samples_with_all_infos, columns_to_select, table_name=inner_select_from_as)
 
             row_number_expression = (
@@ -147,9 +150,9 @@ class SamplingHandler(QueryHandler):
                     Window(
                         partition_by=[
                             Column(self.dku_config.users_column_name, table_name=inner_select_from_as),
-                            Column(self.TARGET, table_name=inner_select_from_as),
+                            Column(constants.TARGET_COLUMN_NAME, table_name=inner_select_from_as),
                         ],
-                        order_by=[Column(self.TARGET, table_name=inner_select_from_as)],
+                        order_by=[Column(constants.TARGET_COLUMN_NAME, table_name=inner_select_from_as)],
                         order_types=["DESC"],
                     )
                 )
@@ -170,7 +173,7 @@ class SamplingHandler(QueryHandler):
             ratio = float(self.dku_config.negative_samples_percentage / 100.0)
             filtered_samples = SelectQuery()
             filtered_samples.select_from(inner_select_from, inner_select_from_as)
-            columns_to_select = self.sample_keys + self.dku_config.score_column_names + [self.TARGET]
+            columns_to_select = self.sample_keys + self.dku_config.score_column_names + [constants.TARGET_COLUMN_NAME]
             self._select_columns_list(filtered_samples, columns_to_select)
 
             nb_negative_threshold_expr = (
@@ -180,7 +183,7 @@ class SamplingHandler(QueryHandler):
                 .ceil()
             )
             filtered_samples.where(
-                Column(self.TARGET, table_name=select_from_as)
+                Column(constants.TARGET_COLUMN_NAME, table_name=select_from_as)
                 .eq(Constant(1))
                 .or_(Column(self.ROW_NUMBER_AS, table_name=select_from_as).le(nb_negative_threshold_expr))
             )
@@ -242,3 +245,8 @@ class SamplingHandler(QueryHandler):
         negative_samples_filtered = self.postfiltering_func(scores_with_negative_samples)
 
         self._execute(negative_samples_filtered, self.file_manager.positive_negative_samples_dataset)
+        self._set_column_description(self.file_manager.positive_negative_samples_dataset)
+
+    def _get_column_descriptions(self, column_name=None):
+        column_name = constants.TARGET_COLUMN_NAME
+        return {column_name: "Positive or negative samples"}

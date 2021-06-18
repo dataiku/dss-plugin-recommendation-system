@@ -1,5 +1,6 @@
 from dataiku.sql import JoinTypes, Expression, Column, Constant, InlineSQL, SelectQuery, Table, Dialects, toSQL, Window
 from dataiku.core.sql import SQLExecutor2
+from dku_utils import set_column_description
 import logging
 
 logger = logging.getLogger(__name__)
@@ -47,3 +48,11 @@ class QueryHandler:
 
     def _build_identity(self, select_query):
         return select_query
+
+    def _set_column_description(self, output_dataset, column_name=None):
+        column_descriptions = self._get_column_descriptions(column_name)
+        set_column_description(output_dataset, column_descriptions)
+        pass
+
+    def _get_column_descriptions(self, column_name):
+        raise NotImplementedError()
