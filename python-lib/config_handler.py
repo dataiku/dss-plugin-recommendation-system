@@ -213,7 +213,7 @@ def add_scoring_config(dku_config, config, file_manager):
     dku_config.add_param(name="timestamp_filtering", value=config.get("timestamp_filtering", False), required=True)
 
 
-def add_timestamp_filtering(dku_config, config):
+def add_timestamp_filtering(dku_config, config, file_manager):
     if dku_config.timestamp_filtering:
         dku_config.add_param(
             name="top_n_most_recent",
@@ -223,7 +223,21 @@ def add_timestamp_filtering(dku_config, config):
             ],
             required=True,
         )
-        dku_config.add_param(name="timestamps_column_name", value=config.get("timestamps_column_name"), required=True)
+        samples_dataset_columns = get_column_names(file_manager.samples_dataset)
+
+        dku_config.add_param(
+            name="timestamps_column_name",
+            value=config.get("timestamps_column_name"),
+            checks=[
+                {"type": "is_type", "op": str},
+                {
+                    "type": "in",
+                    "op": samples_dataset_columns,
+                    "err_msg": f"Invalid timestamp column selection: {config.get('timestamps_column_name')}.",
+                },
+            ],
+            required=True,
+        )
 
 
 def add_custom_collaborative_filtering_config(dku_config, config, file_manager):
@@ -282,7 +296,7 @@ def add_custom_collaborative_filtering_config(dku_config, config, file_manager):
         required=True,
     )
 
-    add_timestamp_filtering(dku_config, config)
+    add_timestamp_filtering(dku_config, config, file_manager)
 
 
 def add_auto_collaborative_filtering_config(dku_config, config, file_manager):
