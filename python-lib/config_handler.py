@@ -96,11 +96,11 @@ def add_sampling_config(dku_config, config, file_manager):
         required=True,
     )
 
-    historical_samples_dataset_columns = get_column_names(file_manager.historical_samples_dataset)
-
     dku_config.add_param(name="historical_samples", value=config.get("historical_samples", False), required=True)
 
     if dku_config.historical_samples:
+        historical_samples_dataset_columns = get_column_names(file_manager.historical_samples_dataset)
+
         dku_config.add_param(
             name="historical_samples_users_column_name",
             value=config.get("historical_samples_users_column_name"),
