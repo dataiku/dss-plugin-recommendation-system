@@ -50,7 +50,8 @@
         {
             "type": "SEPARATOR",
             "name": "separator_input",
-            "label": "Scored samples input"
+            "label": "Scored samples input",
+            "description": "Dataset of user-item samples with one or more affinity scores"
         },
         {
             "name": "scored_samples_users_column_name",
@@ -105,7 +106,8 @@
         {
             "type": "SEPARATOR",
             "name": "separator_input",
-            "label": "Training samples input"
+            "label": "Training samples input",
+            "description": "Train dataset of user-item positive samples"
         },
         {
             "name": "training_samples_users_column_name",
@@ -144,11 +146,18 @@
         {
             "type": "SEPARATOR",
             "name": "separator_input",
-            "label": "(Optional) Historical samples input"
+            "label": "Historical samples input",
+            "description": "Dataset of historical user-item samples used to compute the affinity scores"
+        },
+        {
+            "name": "historical_samples",
+            "label": "Use historical samples",
+            "type": "BOOLEAN",
+            "defaultValue": false
         },
         {
             "name": "historical_samples_users_column_name",
-            "label": "(Optional) Users column",
+            "label": "Users column",
             "allowedColumnTypes": [
                 "tinyint",
                 "smallint",
@@ -161,11 +170,12 @@
             "type": "COLUMN",
             "description": "",
             "columnRole": "historical_samples_dataset",
-            "mandatory": false
+            "mandatory": false,
+            "visibilityCondition": "model.historical_samples"
         },
         {
             "name": "historical_samples_items_column_name",
-            "label": "(Optional) Items column",
+            "label": "Items column",
             "allowedColumnTypes": [
                 "tinyint",
                 "smallint",
@@ -178,7 +188,8 @@
             "type": "COLUMN",
             "description": "",
             "columnRole": "historical_samples_dataset",
-            "mandatory": false
+            "mandatory": false,
+            "visibilityCondition": "model.historical_samples"
         },
         {
             "type": "SEPARATOR",

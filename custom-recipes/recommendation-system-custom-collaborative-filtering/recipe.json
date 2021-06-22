@@ -115,8 +115,8 @@
             ]
         },
         {
-            "name": "similarity_column_1_name",
-            "label": "Column 1",
+            "name": "similarity_users_column_1_name",
+            "label": "Users column 1",
             "allowedColumnTypes": [
                 "tinyint",
                 "smallint",
@@ -129,11 +129,11 @@
             "type": "COLUMN",
             "description": "",
             "columnRole": "similarity_scores_dataset",
-            "mandatory": true
+            "visibilityCondition": "model.similarity_scores_type == 'user_similarity'"
         },
         {
-            "name": "similarity_column_2_name",
-            "label": "Column 2",
+            "name": "similarity_users_column_2_name",
+            "label": "Users column 2",
             "allowedColumnTypes": [
                 "tinyint",
                 "smallint",
@@ -146,7 +146,41 @@
             "type": "COLUMN",
             "description": "",
             "columnRole": "similarity_scores_dataset",
-            "mandatory": true
+            "visibilityCondition": "model.similarity_scores_type == 'user_similarity'"
+        },
+        {
+            "name": "similarity_items_column_1_name",
+            "label": "Items column 1",
+            "allowedColumnTypes": [
+                "tinyint",
+                "smallint",
+                "int",
+                "bigint",
+                "float",
+                "double",
+                "string"
+            ],
+            "type": "COLUMN",
+            "description": "",
+            "columnRole": "similarity_scores_dataset",
+            "visibilityCondition": "model.similarity_scores_type == 'item_similarity'"
+        },
+        {
+            "name": "similarity_items_column_2_name",
+            "label": "Items column 2",
+            "allowedColumnTypes": [
+                "tinyint",
+                "smallint",
+                "int",
+                "bigint",
+                "float",
+                "double",
+                "string"
+            ],
+            "type": "COLUMN",
+            "description": "",
+            "columnRole": "similarity_scores_dataset",
+            "visibilityCondition": "model.similarity_scores_type == 'item_similarity'"
         },
         {
             "name": "similarity_score_column_name",
@@ -171,19 +205,22 @@
         },
         {
             "name": "user_visit_threshold",
-            "label": "User visit threshold",
+            "label": "Minimum visits per user",
+            "description": "Keep only users with more item interaction.",
             "type": "INT",
             "defaultValue": 10
         },
         {
             "name": "item_visit_threshold",
-            "label": "Item visit threshold",
+            "label": "Minimum visits per item",
+            "description": "Keep only items with more user interaction.",
             "type": "INT",
             "defaultValue": 10
         },
         {
             "name": "normalization_method",
             "label": "Normalization method",
+            "description": "User-item visits are normalized using the selected method.",
             "type": "SELECT",
             "defaultValue": "l1_normalization",
             "selectChoices": [
@@ -204,9 +241,48 @@
         },
         {
             "name": "top_n_most_similar",
-            "label": "Top n most similar to compute scores",
+            "label": "Nb. of most similar users/items",
+            "description": "Keep only the top N most similar users/items to compute affinity scores.",
             "type": "INT",
             "defaultValue": 10
+        },
+        {
+            "type": "SEPARATOR",
+            "name": "separator_parameters",
+            "label": "Timestamp filtering",
+            "visibilityCondition": "model.expert_mode"
+        },
+        {
+            "name": "timestamp_filtering",
+            "label": "Use timestamp filtering",
+            "type": "BOOLEAN",
+            "defaultValue": false
+        },
+        {
+            "name": "timestamps_column_name",
+            "label": "Timestamp column",
+            "description": "Column used to order items per user (higher values means more recent).",
+            "allowedColumnTypes": [
+                "date",
+                "tinyint",
+                "smallint",
+                "int",
+                "bigint",
+                "float",
+                "double"
+            ],
+            "type": "COLUMN",
+            "columnRole": "samples_dataset",
+            "mandatory": false,
+            "visibilityCondition": "model.timestamp_filtering"
+        },
+        {
+            "name": "top_n_most_recent",
+            "label": "Nb. of items to keep per user",
+            "description": "Keep only the N most recent items per user based on the timestamp column.",
+            "type": "INT",
+            "defaultValue": 20,
+            "visibilityCondition": "model.timestamp_filtering"
         }
     ],
     "resourceKeys": []

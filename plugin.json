@@ -3,7 +3,7 @@
     "version": "0.0.0",
     "meta": {
         "label": "Recommendation system",
-        "category": "Your category (optional)",
+        "category": "Recommendation",
         "description": "Recommendation system toolkit",
         "author": "Dataiku",
         "icon": "icon-beer",
