@@ -1,6 +1,5 @@
 from .custom_check import CustomCheck, CustomCheckError
 from typing import Any, List
-from enum import EnumMeta
 
 import logging
 logger = logging.getLogger(__name__)
