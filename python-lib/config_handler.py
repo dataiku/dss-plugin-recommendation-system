@@ -59,7 +59,7 @@ def add_sampling_config(dku_config, config, file_manager):
         checks=[
             {"type": "is_type", "op": list},
             {
-                "type": "in",
+                "type": "is_subset",
                 "op": scored_samples_dataset_columns,
                 "err_msg": f"Invalid affinity scores column(s) of scored samples selection: {config.get('score_column_names')}.",
             },
