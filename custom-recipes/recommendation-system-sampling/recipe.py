@@ -21,8 +21,8 @@ def create_dku_file_manager():
 def run():
     logger.info("Running recipe Sampling")
     recipe_config = get_recipe_config()
-    dku_config = create_dku_config(RECIPE.SAMPLING, recipe_config)
     file_manager = create_dku_file_manager()
+    dku_config = create_dku_config(RECIPE.SAMPLING, recipe_config, file_manager=file_manager)
     query_handler = SamplingHandler(dku_config, file_manager)
     query_handler.build()
     logger.info("Recipe done !")

@@ -6,8 +6,8 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_ERROR_MESSAGES = {
     'exists': 'This field is required.',
-    'in': 'Expected keys are: {op}.',
-    'not_in': 'Should not be in the following iterable: {op}.',
+    'in': 'Should be in {op}. (Currently {value})',
+    'not_in': 'Should not be in {op}. (Currently {value})',
     'eq': 'Should be equal to {op} (Currently {value}).',
     'sup': 'Should be greater than {op} (Currently {value}).',
     'sup_eq': 'Should be greater than or equal to {op} (Currently {value}).',
@@ -18,13 +18,14 @@ DEFAULT_ERROR_MESSAGES = {
     'is_type': 'Should be of type <class \'{op}\'> (Currently {value_type}).',
     'is_castable': 'Should be castable to type {op}> (Currently {value} with type {value_type}.',
     'custom': "There has been an unknown error.",
-    'match': "Should match the following pattern: {op}."
+    'match': "Should match the following pattern: {op}.",
+    'is_subset': 'Should be a subset of {op}. (Currently {value})'
 }
 
 
 class CustomCheckError(Exception):
-    """Exception raised when condition of CustomCheck are not met.
-    """
+    """Exception raised when condition of CustomCheck are not met."""
+
     pass
 
 
@@ -36,9 +37,8 @@ class CustomCheck:
         op (Any, optional): Operator to compare the value to. Unnecessary for som checks
         err_msg (str, optional): Custom message to display if check fails. Default is a generic message
     """
-    def __init__(self, type,
-                 op: Any = None,
-                 err_msg: str = ''):
+
+    def __init__(self, type, op: Any = None, err_msg: str = ""):
         """Initialization method for the CustomCheck class
 
         Args:
@@ -47,9 +47,9 @@ class CustomCheck:
             err_msg (str, optional): Custom message to display if check fails. Default is a generic message
         """
         self.type = type
-        func_name = '_{}'.format(self.type)
+        func_name = "_{}".format(self.type)
         if not hasattr(self, func_name):
-            raise CustomCheckError('Check of type {} does not exist.'.format(self.type))
+            raise CustomCheckError("Check of type {} does not exist.".format(self.type))
         self.op = op
         self.err_msg = err_msg or self.get_default_err_msg()
 
@@ -59,7 +59,7 @@ class CustomCheck:
         Args:
             value(Any, optional): The value to run the check on. Default is None
         """
-        func_name = '_{}'.format(self.type)
+        func_name = "_{}".format(self.type)
         result = getattr(self, func_name)(value)
         self.handle_return(result, value)
 
@@ -84,7 +84,7 @@ class CustomCheck:
         Returns:
             str: Unformatted default error message
         """
-        return DEFAULT_ERROR_MESSAGES.get(self.type, 'custom')
+        return DEFAULT_ERROR_MESSAGES.get(self.type, "custom")
 
     def format_err_msg(self, value: Any) -> str:
         """Format the error message with the value that has failed the test
@@ -96,7 +96,7 @@ class CustomCheck:
             str: Error messages formatted
         """
         formatted_err_msg = self.err_msg.format(value=value, op=self.op, value_type=type(value))
-        return f'{formatted_err_msg}'
+        return f"{formatted_err_msg}"
 
     def _exists(self, value: Any) -> bool:
         """Checks whether the value is None
@@ -111,7 +111,8 @@ class CustomCheck:
         return value not in EMPTY_ENTRIES
 
     def _in(self, value: Any) -> bool:
-        """Checks whether the value is in the iterable given in "op" attribute
+        """Checks whether the value is in the iterable given in "op" attribute. If the value and the operator are lists,
+        it checks if the value is a subset of the operator.
 
         Args:
             value(Any): Value to test
@@ -119,7 +120,10 @@ class CustomCheck:
         Returns:
             bool: Whether the check has succeed
         """
-        return value in self.op
+        if isinstance(value, list) and isinstance(self.op, list):
+            return all(x in self.op for x in value)
+        else:
+            return value in self.op
 
     def _not_in(self, value: Any) -> bool:
         """Checks whether the value is not in the iterable given in "op" attribute
@@ -235,7 +239,7 @@ class CustomCheck:
         except (TypeError, ValueError):
             return False
 
-    def _custom(self, _) -> bool:
+    def _custom(self, *args) -> bool:
         """Checks whether "op" attribute is true or false
 
         Returns:
@@ -243,10 +247,18 @@ class CustomCheck:
         """
         return self.op
 
-    def _match(self, value) -> bool:
+    def _match(self, value: Any) -> bool:
         """Checks whether "value" matches the regex provided in "op" attribute
 
         Returns:
             bool: Whether the check has succeed
         """
         return not not re.match(self.op, value)
+
+    def _is_subset(self, value: Any) -> bool:
+        """Checks whether "value" is a subset of "op"
+
+        Returns:
+            bool: Whether the check has succeed
+        """
+        return set(value).issubset(set(self.op))
