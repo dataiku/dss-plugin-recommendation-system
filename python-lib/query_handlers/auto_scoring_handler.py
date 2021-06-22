@@ -19,7 +19,17 @@ class AutoScoringHandler(ScoringHandler):
         if self.output_similarity_matrix:
             logger.info("About to compute similarity matrix ...")
             self._execute(similarity, self.file_manager.similarity_scores_dataset)
+            self._set_column_description(self.file_manager.similarity_scores_dataset, constants.SIMILARITY_COLUMN_NAME)
             similarity = self.file_manager.similarity_scores_dataset
 
         cf_scores = self._build_collaborative_filtering(similarity, normed_count)
         self._execute(cf_scores, self.file_manager.scored_samples_dataset)
+        self._set_column_description(self.file_manager.scored_samples_dataset, constants.SCORE_COLUMN_NAME)
+
+    def _get_column_descriptions(self, column_name):
+        cf_based_on = "user" if self.is_user_based else "item"
+        if column_name == constants.SCORE_COLUMN_NAME:
+            description = f"User-item affinity scores (using {cf_based_on}-based collaborative filtering)"
+        elif column_name == constants.SIMILARITY_COLUMN_NAME:
+            description = f"Similarity between {cf_based_on}s (higher means more similar)"
+        return {column_name: description}

@@ -35,3 +35,12 @@ class CustomScoringHandler(ScoringHandler):
         similarity = self._prepare_similarity_input()
         cf_scores = self._build_collaborative_filtering(similarity, normed_count)
         self._execute(cf_scores, self.file_manager.scored_samples_dataset)
+        self._set_column_description(self.file_manager.scored_samples_dataset)
+
+    def _get_column_descriptions(self, column_name=None):
+        column_name = constants.SCORE_COLUMN_NAME
+        cf_based_on = "user" if self.is_user_based else "item"
+        description = (
+            f"User-item affinity scores (using {cf_based_on}-based collaborative filtering with custom similarity)"
+        )
+        return {column_name: description}
