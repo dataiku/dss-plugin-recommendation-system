@@ -124,21 +124,62 @@ class ScoringHandler(QueryHandler):
         )
         return normed_count
 
-    def _build_similarity(self, select_from, with_clause_as="_with_clause_normed_count"):
+    def _build_similarity(self, select_from):
+        ordered_similarity = self._build_ordered_similarity(select_from)
+        similarity = self._build_unordered_similarity(ordered_similarity)
+        return similarity
+
+    def _build_unordered_similarity(
+        self,
+        select_from,
+        left_select_from_as="_left_ordered_similarity",
+        right_select_from_as="_right_ordered_similarity",
+        with_clause_as="_with_clause_ordered_similarity",
+    ):
+        """Retrieve both pairs (when col_1 < col_2 and col_1 > col_2) from the ordered similarity table"""
+        similarity = SelectQuery()
+        similarity.with_cte(select_from, alias=with_clause_as)
+        similarity.select_from(with_clause_as, alias=left_select_from_as)
+        join_condition = Constant(1).eq_null_unsafe(Constant(0))
+
+        similarity.join(with_clause_as, JoinTypes.FULL, join_condition, alias=right_select_from_as)
+
+        similarity.select(
+            Column(f"{self.based_column}_1", table_name=left_select_from_as).coalesce(
+                Column(f"{self.based_column}_2", table_name=right_select_from_as)
+            ),
+            alias=f"{self.based_column}_1",
+        )
+        similarity.select(
+            Column(f"{self.based_column}_2", table_name=left_select_from_as).coalesce(
+                Column(f"{self.based_column}_1", table_name=right_select_from_as)
+            ),
+            alias=f"{self.based_column}_2",
+        )
+        similarity.select(
+            Column("similarity", table_name=left_select_from_as).coalesce(
+                Column("similarity", table_name=right_select_from_as)
+            ),
+            alias=constants.SIMILARITY_COLUMN_NAME,
+        )
+
+        return similarity
+
+    def _build_ordered_similarity(self, select_from, with_clause_as="_with_clause_normed_count"):
+        """Build a similarity table col_1, col_2, similarity where col_1 < col_2 """
         similarity = SelectQuery()
         similarity.with_cte(select_from, alias=with_clause_as)
         similarity.select_from(with_clause_as, alias=self.LEFT_NORMED_COUNT_AS)
 
-        join_condition = Column(self.pivot_column, self.LEFT_NORMED_COUNT_AS).eq_null_unsafe(
-            Column(self.pivot_column, self.RIGHT_NORMED_COUNT_AS)
-        )
-        similarity.join(with_clause_as, JoinTypes.INNER, join_condition, alias=self.RIGHT_NORMED_COUNT_AS)
-
-        similarity.where(
-            Column(self.based_column, table_name=self.LEFT_NORMED_COUNT_AS).ne(
-                Column(self.based_column, table_name=self.RIGHT_NORMED_COUNT_AS)
-            )
-        )
+        join_conditions = [
+            Column(self.pivot_column, self.LEFT_NORMED_COUNT_AS).eq_null_unsafe(
+                Column(self.pivot_column, self.RIGHT_NORMED_COUNT_AS)
+            ),
+            Column(self.based_column, self.LEFT_NORMED_COUNT_AS).lt(
+                Column(self.based_column, self.RIGHT_NORMED_COUNT_AS)
+            ),
+        ]
+        similarity.join(with_clause_as, JoinTypes.INNER, join_conditions, alias=self.RIGHT_NORMED_COUNT_AS)
 
         similarity.group_by(Column(self.based_column, table_name=self.LEFT_NORMED_COUNT_AS))
         similarity.group_by(Column(self.based_column, table_name=self.RIGHT_NORMED_COUNT_AS))
