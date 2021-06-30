@@ -235,26 +235,9 @@
             ]
         },
         {
-            "type": "SEPARATOR",
-            "name": "separator_parameters",
-            "label": "Affinity scores parameters"
-        },
-        {
-            "name": "top_n_most_similar",
-            "label": "Nb. of most similar users/items",
-            "description": "Keep only the top N most similar users/items to compute affinity scores.",
-            "type": "INT",
-            "defaultValue": 10
-        },
-        {
-            "type": "SEPARATOR",
-            "name": "separator_parameters",
-            "label": "Timestamp filtering",
-            "visibilityCondition": "model.expert_mode"
-        },
-        {
             "name": "timestamp_filtering",
             "label": "Use timestamp filtering",
+            "description": "Makes the computations faster but scores less user-item pairs.",
             "type": "BOOLEAN",
             "defaultValue": false
         },
@@ -283,6 +266,18 @@
             "type": "INT",
             "defaultValue": 20,
             "visibilityCondition": "model.timestamp_filtering"
+        },
+        {
+            "type": "SEPARATOR",
+            "name": "separator_parameters",
+            "label": "Affinity scores parameters"
+        },
+        {
+            "name": "top_n_most_similar",
+            "label": "Nb. of most similar users/items",
+            "description": "Keep only the top N most similar users/items to compute affinity scores.",
+            "type": "INT",
+            "defaultValue": 10
         }
     ],
     "resourceKeys": []
