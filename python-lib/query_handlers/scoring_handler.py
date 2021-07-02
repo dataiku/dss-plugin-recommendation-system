@@ -84,11 +84,27 @@ class ScoringHandler(QueryHandler):
         self._select_columns_list(visit_count, column_names=columns_to_select, table_name=select_from_as)
 
         visit_count.select(
-            Column("*").count().over(Window(partition_by=[Column(self.dku_config.users_column_name)])),
+            Column("*")
+            .count()
+            .over(
+                Window(
+                    partition_by=[Column(self.dku_config.users_column_name)],
+                    order_by=[Column(self.dku_config.items_column_name)],
+                    order_types=["ASC"],
+                )
+            ),
             alias=self.NB_VISIT_USER_AS,
         )
         visit_count.select(
-            Column("*").count().over(Window(partition_by=[Column(self.dku_config.items_column_name)])),
+            Column("*")
+            .count()
+            .over(
+                Window(
+                    partition_by=[Column(self.dku_config.items_column_name)],
+                    order_by=[Column(self.dku_config.users_column_name)],
+                    order_types=["ASC"],
+                )
+            ),
             alias=self.NB_VISIT_ITEM_AS,
         )
         return visit_count
@@ -125,8 +141,12 @@ class ScoringHandler(QueryHandler):
         return normed_count
 
     def _build_similarity(self, select_from):
-        ordered_similarity = self._build_ordered_similarity(select_from)
-        similarity = self._build_unordered_similarity(ordered_similarity)
+        can_full_outer_join = False
+        if can_full_outer_join:
+            ordered_similarity = self._build_ordered_similarity(select_from, can_full_outer_join=can_full_outer_join)
+            similarity = self._build_unordered_similarity(ordered_similarity)
+        else:
+            similarity = self._build_ordered_similarity(select_from, can_full_outer_join=can_full_outer_join)
         return similarity
 
     def _build_unordered_similarity(
@@ -138,11 +158,11 @@ class ScoringHandler(QueryHandler):
     ):
         """Retrieve both pairs (when col_1 < col_2 and col_1 > col_2) from the ordered similarity table"""
         similarity = SelectQuery()
-        similarity.with_cte(select_from, alias=with_clause_as)
-        similarity.select_from(with_clause_as, alias=left_select_from_as)
+        # similarity.with_cte(select_from, alias=with_clause_as)
+        similarity.select_from(select_from, alias=left_select_from_as)
         join_condition = Constant(1).eq_null_unsafe(Constant(0))
 
-        similarity.join(with_clause_as, JoinTypes.FULL, join_condition, alias=right_select_from_as)
+        similarity.join(select_from, JoinTypes.FULL, join_condition, alias=right_select_from_as)
 
         similarity.select(
             Column(f"{self.based_column}_1", table_name=left_select_from_as).coalesce(
@@ -165,21 +185,34 @@ class ScoringHandler(QueryHandler):
 
         return similarity
 
-    def _build_ordered_similarity(self, select_from, with_clause_as="_with_clause_normed_count"):
+    def _build_ordered_similarity(
+        self, select_from, with_clause_as="_with_clause_normed_count", can_full_outer_join=False
+    ):
         """Build a similarity table col_1, col_2, similarity where col_1 < col_2 """
         similarity = SelectQuery()
-        similarity.with_cte(select_from, alias=with_clause_as)
-        similarity.select_from(with_clause_as, alias=self.LEFT_NORMED_COUNT_AS)
+        # similarity.with_cte(select_from, alias=with_clause_as)
+        similarity.select_from(select_from, alias=self.LEFT_NORMED_COUNT_AS)
 
         join_conditions = [
             Column(self.pivot_column, self.LEFT_NORMED_COUNT_AS).eq_null_unsafe(
                 Column(self.pivot_column, self.RIGHT_NORMED_COUNT_AS)
-            ),
-            Column(self.based_column, self.LEFT_NORMED_COUNT_AS).lt(
-                Column(self.based_column, self.RIGHT_NORMED_COUNT_AS)
-            ),
+            )
         ]
-        similarity.join(with_clause_as, JoinTypes.INNER, join_conditions, alias=self.RIGHT_NORMED_COUNT_AS)
+
+        if can_full_outer_join:
+            join_conditions += [
+                Column(self.based_column, self.LEFT_NORMED_COUNT_AS).lt(
+                    Column(self.based_column, self.RIGHT_NORMED_COUNT_AS)
+                )
+            ]
+        else:
+            join_conditions += [
+                Column(self.based_column, self.LEFT_NORMED_COUNT_AS).ne(
+                    Column(self.based_column, self.RIGHT_NORMED_COUNT_AS)
+                )
+            ]
+
+        similarity.join(select_from, JoinTypes.INNER, join_conditions, alias=self.RIGHT_NORMED_COUNT_AS)
 
         similarity.group_by(Column(self.based_column, table_name=self.LEFT_NORMED_COUNT_AS))
         similarity.group_by(Column(self.based_column, table_name=self.RIGHT_NORMED_COUNT_AS))
@@ -262,8 +295,9 @@ class ScoringHandler(QueryHandler):
             cast_mapping[self.dku_config.timestamps_column_name] = self._get_cast_type(
                 self.dku_config.timestamps_column_name, samples_dataset
             )
-        samples_cast = self._cast_table(samples_dataset, cast_mapping, alias="_raw_input_dataset")
-        visit_count = self._build_visit_count(samples_cast)
+        # samples_cast = self._cast_table(samples_dataset, cast_mapping, alias="_raw_input_dataset")
+        # visit_count = self._build_visit_count(samples_cast)
+        visit_count = self._build_visit_count(samples_dataset)
         normed_count = self._build_normed_count(visit_count)
         if self.timestamp_filtering:
             timestamp_filtered = self._build_timestamp_filtered(normed_count)
@@ -280,11 +314,30 @@ class ScoringHandler(QueryHandler):
     def _get_visit_normalization(self, column_to_norm, rating_column):
         if self.dku_config.normalization_method == constants.NORMALIZATION_METHOD.L1:
             logger.debug("Using L1 normalization")
-            return rating_column.div(rating_column.abs().sum().over(Window(partition_by=[column_to_norm])))
+            return rating_column.div(
+                rating_column.abs()
+                .sum()
+                .over(
+                    Window(
+                        partition_by=[column_to_norm],
+                        order_by=[column_to_norm],
+                        order_types=["ASC"],
+                    )
+                )
+            )
         elif self.dku_config.normalization_method == constants.NORMALIZATION_METHOD.L2:
             logger.debug("Using L2 normalization")
             return rating_column.div(
-                rating_column.times(rating_column).sum().over(Window(partition_by=[column_to_norm])).sqrt()
+                rating_column.times(rating_column)
+                .sum()
+                .over(
+                    Window(
+                        partition_by=[column_to_norm],
+                        order_by=[column_to_norm],
+                        order_types=["ASC"],
+                    )
+                )
+                .sqrt()
             )
 
     def _get_similarity_formula(self):

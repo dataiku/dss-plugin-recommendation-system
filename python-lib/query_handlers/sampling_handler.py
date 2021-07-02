@@ -206,8 +206,9 @@ class SamplingHandler(QueryHandler):
             items_col_name: self.dku_config.items_column_name,
         }
         renamed_samples = self._rename_table(query_to_prepare, renaming_mapping)
-        cast_samples = self._cast_table(renamed_samples, cast_mapping, alias=alias)
-        return cast_samples
+        return renamed_samples
+        # cast_samples = self._cast_table(renamed_samples, cast_mapping, alias=alias)
+        # return cast_samples
 
     def build(self):
         cast_mapping = {self.dku_config.users_column_name: "string", self.dku_config.items_column_name: "string"}
@@ -233,12 +234,14 @@ class SamplingHandler(QueryHandler):
         else:
             samples_for_scores = None
 
-        cast_mapping.update({col: "double" for col in self.dku_config.score_column_names})
-        scored_samples_cast = self._cast_table(
-            self.file_manager.scored_samples_dataset, cast_mapping, alias="_scored_samples"
-        )
+        # cast_mapping.update({col: "double" for col in self.dku_config.score_column_names})
+        # scored_samples_cast = self._cast_table(
+        #     self.file_manager.scored_samples_dataset, cast_mapping, alias="_scored_samples"
+        # )
 
-        null_scores_filtered = self._build_cf_scores_without_null(scored_samples_cast)
+        # null_scores_filtered = self._build_cf_scores_without_null(scored_samples_cast)
+
+        null_scores_filtered = self._build_cf_scores_without_null(self.file_manager.scored_samples_dataset)
 
         all_cf_scores = self._build_all_cf_scores(null_scores_filtered, samples_for_training, samples_for_scores)
         all_cf_scores_with_target = self._build_all_cf_scores_with_target(all_cf_scores)
