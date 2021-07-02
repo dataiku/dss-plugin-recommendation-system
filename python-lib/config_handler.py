@@ -29,6 +29,7 @@ def add_sampling_config(dku_config, config, file_manager):
 
     dku_config.add_param(
         name="users_column_name",
+        label="Users column (Scored samples)",
         value=config.get("scored_samples_users_column_name"),
         checks=[
             {"type": "is_type", "op": str},
@@ -42,6 +43,7 @@ def add_sampling_config(dku_config, config, file_manager):
     )
     dku_config.add_param(
         name="items_column_name",
+        label="Items column (Scored samples)",
         value=config.get("scored_samples_items_column_name"),
         checks=[
             {"type": "is_type", "op": str},
@@ -55,6 +57,7 @@ def add_sampling_config(dku_config, config, file_manager):
     )
     dku_config.add_param(
         name="score_column_names",
+        label="Columns with affinity scores",
         value=config.get("score_column_names"),
         checks=[
             {"type": "is_type", "op": list},
@@ -71,6 +74,7 @@ def add_sampling_config(dku_config, config, file_manager):
 
     dku_config.add_param(
         name="training_samples_users_column_name",
+        label="Users column (Training samples)",
         value=config.get("training_samples_users_column_name"),
         checks=[
             {"type": "is_type", "op": str},
@@ -84,6 +88,7 @@ def add_sampling_config(dku_config, config, file_manager):
     )
     dku_config.add_param(
         name="training_samples_items_column_name",
+        label="Items column (Training samples)",
         value=config.get("training_samples_items_column_name"),
         checks=[
             {"type": "is_type", "op": str},
@@ -103,6 +108,7 @@ def add_sampling_config(dku_config, config, file_manager):
 
         dku_config.add_param(
             name="historical_samples_users_column_name",
+            label="Users column (Historical samples)",
             value=config.get("historical_samples_users_column_name"),
             checks=[
                 {"type": "is_type", "op": str},
@@ -116,6 +122,7 @@ def add_sampling_config(dku_config, config, file_manager):
         )
         dku_config.add_param(
             name="historical_samples_items_column_name",
+            label="Items column (Historical samples)",
             value=config.get("historical_samples_items_column_name"),
             checks=[
                 {"type": "is_type", "op": str},
@@ -133,6 +140,7 @@ def add_sampling_config(dku_config, config, file_manager):
     )
     dku_config.add_param(
         name="negative_samples_percentage",
+        label="Negative samples percentage",
         value=config.get("negative_samples_percentage"),
         checks=[{"type": "between", "op": [0, 100]}],
     )
@@ -148,6 +156,7 @@ def add_scoring_config(dku_config, config, file_manager):
 
     dku_config.add_param(
         name="users_column_name",
+        label="Users column",
         value=config.get("users_column_name"),
         checks=[
             {"type": "is_type", "op": str},
@@ -161,6 +170,7 @@ def add_scoring_config(dku_config, config, file_manager):
     )
     dku_config.add_param(
         name="items_column_name",
+        label="Items column",
         value=config.get("items_column_name"),
         checks=[
             {"type": "is_type", "op": str},
@@ -174,6 +184,7 @@ def add_scoring_config(dku_config, config, file_manager):
     )
     dku_config.add_param(
         name="ratings_column_name",
+        label="Ratings column",
         value=config.get("ratings_column_name"),
         checks=[
             {"type": "is_type", "op": str},
@@ -188,18 +199,21 @@ def add_scoring_config(dku_config, config, file_manager):
 
     dku_config.add_param(
         name="top_n_most_similar",
+        label="Nb. of most similar users/items",
         value=config.get("top_n_most_similar"),
         required=True,
         checks=[{"type": "sup", "op": 0}],
     )
     dku_config.add_param(
         name="user_visit_threshold",
+        label="Minimum visits per user",
         value=config.get("user_visit_threshold"),
         required=True,
         checks=[{"type": "sup", "op": 0}],
     )
     dku_config.add_param(
         name="item_visit_threshold",
+        label="Minimum visits per item",
         value=config.get("item_visit_threshold"),
         required=True,
         checks=[{"type": "sup", "op": 0}],
@@ -217,6 +231,7 @@ def add_timestamp_filtering(dku_config, config, file_manager):
     if dku_config.timestamp_filtering:
         dku_config.add_param(
             name="top_n_most_recent",
+            label="Nb. of items to keep per user",
             value=config.get("top_n_most_recent"),
             checks=[
                 {"type": "sup", "op": 0},
@@ -227,6 +242,7 @@ def add_timestamp_filtering(dku_config, config, file_manager):
 
         dku_config.add_param(
             name="timestamps_column_name",
+            label="Timestamp column",
             value=config.get("timestamps_column_name"),
             checks=[
                 {"type": "is_type", "op": str},
@@ -257,6 +273,7 @@ def add_custom_collaborative_filtering_config(dku_config, config, file_manager):
 
     dku_config.add_param(
         name="similarity_column_1_name",
+        label="Similarity column 1",
         value=config.get(similarity_column_1_name),
         checks=[
             {"type": "is_type", "op": str},
@@ -270,6 +287,7 @@ def add_custom_collaborative_filtering_config(dku_config, config, file_manager):
     )
     dku_config.add_param(
         name="similarity_column_2_name",
+        label="Similarity column 2",
         value=config.get(similarity_column_2_name),
         checks=[
             {"type": "is_type", "op": str},
