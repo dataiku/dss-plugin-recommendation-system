@@ -1,6 +1,7 @@
-from dataiku.sql import JoinTypes, Expression, Column, Constant, InlineSQL, SelectQuery, Table, Dialects, toSQL, Window
+from dataiku.sql import Column, Constant, SelectQuery, toSQL, Window
 from dataiku.core.sql import SQLExecutor2
 import dku_constants as constants
+from dku_dialects import SUPPORTED_DIALECTS, SUPPORTS_FULL_OUTER_JOIN, SUPPORTS_WITH_CLAUSE
 from dku_utils import set_column_description
 import logging
 
@@ -12,6 +13,7 @@ class QueryHandler:
         self.dku_config = dku_config
         self.file_manager = file_manager
         self.query = None
+        self._check_supported_dialect()
 
     def build(self):
         pass
@@ -62,3 +64,25 @@ class QueryHandler:
 
     def _get_column_descriptions(self, column_name):
         raise NotImplementedError()
+
+    def _check_supported_dialect(self):
+        connection_type = self._get_unique_dialect()
+        if connection_type not in SUPPORTED_DIALECTS:
+            raise ValueError(
+                f"""
+                Connection type '{connection_type}' is not supported by the plugin.
+                Supported connection types are {list(SUPPORTED_DIALECTS.keys())}
+                """
+            )
+        self.supports_full_outer_join = SUPPORTED_DIALECTS[connection_type].get(SUPPORTS_FULL_OUTER_JOIN, False)
+        self.supports_with_clause = SUPPORTED_DIALECTS[connection_type].get(SUPPORTS_WITH_CLAUSE, False)
+
+    def _get_unique_dialect(self):
+        connection_types, connection_names = [], []
+        for dataset in self.file_manager.values():
+            if dataset is not None:
+                connection_types += [dataset.get_config().get("type")]
+                connection_names += [dataset.get_config().get("params").get("connection")]
+        if len(set(connection_types)) != 1 or len(set(connection_names)) != 1:
+            raise ValueError("All inputs and outputs datasets must be in the same connection.")
+        return connection_types[0]
