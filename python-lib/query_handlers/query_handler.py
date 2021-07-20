@@ -49,9 +49,11 @@ class QueryHandler:
             select_query.select(Column(col_name, table_name=table_name))
 
     def _or_condition_columns_list(self, select_query, column_names, condition_method):
-        or_condition = Constant(False)
-        for col_name in column_names:
-            or_condition = or_condition.or_(condition_method(Column(col_name)))
+        for i, col_name in enumerate(column_names):
+            if i == 0:
+                or_condition = condition_method(Column(col_name))
+            else:
+                or_condition = or_condition.or_(condition_method(Column(col_name)))
         select_query.where(or_condition)
 
     def _build_identity(self, select_query):
