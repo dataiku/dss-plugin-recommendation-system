@@ -5,7 +5,6 @@ from dku_constants import (
     SIMILARITY_TYPE,
     SAMPLING_METHOD,
     CF_METHOD,
-    NEGATIVE_SAMPLES_GENERATION_MODE,
 )
 import logging
 
@@ -143,11 +142,6 @@ def add_sampling_config(dku_config, config, file_manager):
         label="Negative samples percentage",
         value=config.get("negative_samples_percentage"),
         checks=[{"type": "between", "op": [0, 100]}],
-    )
-    dku_config.add_param(
-        name="negative_samples_generation_mode",
-        value=config.get("negative_samples_generation_mode"),
-        cast_to=NEGATIVE_SAMPLES_GENERATION_MODE,
     )
 
 

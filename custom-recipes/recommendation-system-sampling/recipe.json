@@ -197,18 +197,6 @@
             "label": "Parameters"
         },
         {
-            "name": "negative_samples_generation_mode",
-            "label": "Negative samples generation mode",
-            "type": "SELECT",
-            "defaultValue": "remove_historical_samples",
-            "selectChoices": [
-                {
-                    "value": "remove_historical_samples",
-                    "label": "Remove existing samples"
-                }
-            ]
-        },
-        {
             "name": "sampling_method",
             "label": "Sampling method",
             "type": "SELECT",

@@ -24,13 +24,7 @@ class SamplingHandler(QueryHandler):
 
     def _set_negative_samples_generation_function(self):
         if self.has_historical_data:
-            if (
-                self.dku_config.negative_samples_generation_mode
-                == constants.NEGATIVE_SAMPLES_GENERATION_MODE.REMOVE_HISTORICAL_SAMPLES
-            ):
-                self.negative_samples_generation_func = self._build_remove_historical_samples
-            else:
-                self.negative_samples_generation_func = self._build_remove_historical_samples
+            self.negative_samples_generation_func = self._build_remove_historical_samples
         else:
             self.negative_samples_generation_func = self._build_identity
 
@@ -119,6 +113,10 @@ class SamplingHandler(QueryHandler):
         null_scores_filtered.select_from(select_from, alias=select_from_as)
         columns_to_select = self.sample_keys + self.dku_config.score_column_names
         self._select_columns_list(select_query=null_scores_filtered, column_names=columns_to_select)
+
+        or_condition = or_condition.or_(condition_method(Column(col_name)))
+        null_scores_filtered.where(or_condition)
+
         self._or_condition_columns_list(
             null_scores_filtered, self.dku_config.score_column_names, lambda x: x.is_not_null()
         )
