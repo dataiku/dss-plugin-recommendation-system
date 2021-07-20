@@ -113,10 +113,6 @@ class SamplingHandler(QueryHandler):
         null_scores_filtered.select_from(select_from, alias=select_from_as)
         columns_to_select = self.sample_keys + self.dku_config.score_column_names
         self._select_columns_list(select_query=null_scores_filtered, column_names=columns_to_select)
-
-        or_condition = or_condition.or_(condition_method(Column(col_name)))
-        null_scores_filtered.where(or_condition)
-
         self._or_condition_columns_list(
             null_scores_filtered, self.dku_config.score_column_names, lambda x: x.is_not_null()
         )
