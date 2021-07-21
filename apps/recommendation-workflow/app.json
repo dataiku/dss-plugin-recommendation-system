@@ -1,18 +1,8 @@
-// This file is the descriptor for the app template recommendation-workflow
 {
     "meta": {
-        // label: name of the app template as displayed, should be short
-        "label": "App template recommendation-workflow",
-
-        // description: longer string to help end users understand what this app does
-        "description": "",
-
-        // icon: must be one of the FontAwesome 3.2.1 icons, complete list here at https://fontawesome.com/v3.2.1/icons/
-        "icon": "icon-puzzle-piece"
+        "label": "Recommendation System App",
+        "description": "Use this app to generate a complete recommendation system flow from an input SQL table",
+        "icon": "icon-group"
     }
 
-    /*
-        // name of an image in the resource/ folder of the plugin: used only for the dataiku application
-        , "appImageFilename": "image.png"
-    */
 }
