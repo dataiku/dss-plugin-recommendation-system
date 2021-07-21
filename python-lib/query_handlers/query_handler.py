@@ -69,15 +69,8 @@ class QueryHandler:
 
     def _check_supported_dialect(self):
         connection_type = self._get_unique_dialect()
-        if connection_type not in SUPPORTED_DIALECTS:
-            raise ValueError(
-                f"""
-                Connection type '{connection_type}' is not supported by the plugin.
-                Supported connection types are {list(SUPPORTED_DIALECTS.keys())}
-                """
-            )
-        self.supports_full_outer_join = SUPPORTED_DIALECTS[connection_type].get(SUPPORTS_FULL_OUTER_JOIN, False)
-        self.supports_with_clause = SUPPORTED_DIALECTS[connection_type].get(SUPPORTS_WITH_CLAUSE, False)
+        self.supports_full_outer_join = True
+        self.supports_with_clause = True
 
     def _get_unique_dialect(self):
         connection_types, connection_names = [], []
