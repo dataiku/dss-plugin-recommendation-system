@@ -2,7 +2,7 @@
     "meta": {
         "label": "Custom collaborative filtering",
         "description": "Compute affinity scores from a dataset of user-item samples and a dataset of similarity scores",
-        "icon": "icon-beer"
+        "icon": "icon-group"
     },
     "kind": "PYTHON",
     "selectableFromDataset": "samples_dataset",
