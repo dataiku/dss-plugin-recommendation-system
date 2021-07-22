@@ -11,6 +11,7 @@ class ScoringHandler(QueryHandler):
     # VISIT_COUNT_TABLE_ALIAS = "visit_count"
     NB_VISIT_USER_AS = "_nb_visit_user"
     NB_VISIT_ITEM_AS = "_nb_visit_item"
+    RATING_AVERAGE = "_rating_average"
     NORMALIZATION_FACTOR_AS = "_normalization_factor"
     LEFT_NORMALIZATION_FACTOR_AS = "_left_normalization_factor"
     RIGHT_NORMALIZATION_FACTOR_AS = "_right_normalization_factor"
@@ -23,9 +24,14 @@ class ScoringHandler(QueryHandler):
         self.precomputation_columns = self.sample_keys.copy()
         self.use_explicit = bool(self.dku_config.ratings_column_name)
         self.timestamp_filtering = bool(self.dku_config.timestamp_filtering and self.dku_config.timestamps_column_name)
+        self.rating_normalization = False
         if self.use_explicit:
             logger.debug("Using explicit feedbacks")
             self.precomputation_columns += [self.dku_config.ratings_column_name]
+
+            # TODO add a UI parameter to activate rating normalization (aka Pearson correlation else Cosine similarity)
+            self.rating_normalization = True
+
         if self.timestamp_filtering:
             logger.debug("Using timestamp filtering")
             self.precomputation_columns += [self.dku_config.timestamps_column_name]
@@ -92,6 +98,15 @@ class ScoringHandler(QueryHandler):
             Column("*").count().over(Window(partition_by=[Column(self.dku_config.items_column_name)])),
             alias=self.NB_VISIT_ITEM_AS,
         )
+        if self.use_explicit and self.rating_normalization:
+            visit_count.select(
+                Column(self.dku_config.ratings_column_name)
+                .avg()
+                .over(Window(partition_by=[Column(self.based_column)])),
+                alias=self.RATING_AVERAGE,
+            )
+            self.precomputation_columns += [self.RATING_AVERAGE]
+
         return visit_count
 
     def _build_normalization_factor(self, select_from, select_from_as="_visit_count"):
@@ -103,9 +118,9 @@ class ScoringHandler(QueryHandler):
             normalization_factor, column_names=self.precomputation_columns, table_name=select_from_as
         )
 
-        rating_column = (
-            Column(self.dku_config.ratings_column_name) if self.dku_config.ratings_column_name else Constant(1)
-        )
+        rating_column = Column(self.dku_config.ratings_column_name) if self.use_explicit else Constant(1)
+        if self.rating_normalization:
+            rating_column = rating_column.minus(Column(self.RATING_AVERAGE))
 
         normalization_factor.select(
             self._get_normalization_factor_formula(Column(self.based_column), rating_column),
@@ -294,10 +309,21 @@ class ScoringHandler(QueryHandler):
         rounding_expression = Constant(10 ** rounding_decimals)
         logger.debug(f"Rounding similarity to {rounding_decimals} decimals")
 
-        if self.dku_config.ratings_column_name:
-            rating_product = Column(
-                self.dku_config.ratings_column_name, table_name=self.LEFT_NORMALIZATION_FACTOR_AS
-            ).times(Column(self.dku_config.ratings_column_name, table_name=self.RIGHT_NORMALIZATION_FACTOR_AS))
+        if self.use_explicit:
+            if self.rating_normalization:
+                rating_product = (
+                    Column(self.dku_config.ratings_column_name, table_name=self.LEFT_NORMALIZATION_FACTOR_AS)
+                    .minus(Column(self.RATING_AVERAGE, table_name=self.LEFT_NORMALIZATION_FACTOR_AS))
+                    .times(
+                        Column(
+                            self.dku_config.ratings_column_name, table_name=self.RIGHT_NORMALIZATION_FACTOR_AS
+                        ).minus(Column(self.RATING_AVERAGE, table_name=self.RIGHT_NORMALIZATION_FACTOR_AS))
+                    )
+                )
+            else:
+                rating_product = Column(
+                    self.dku_config.ratings_column_name, table_name=self.LEFT_NORMALIZATION_FACTOR_AS
+                ).times(Column(self.dku_config.ratings_column_name, table_name=self.RIGHT_NORMALIZATION_FACTOR_AS))
         else:
             rating_product = Constant(1)
 
@@ -311,13 +337,26 @@ class ScoringHandler(QueryHandler):
         )
 
     def _get_user_item_similarity_formula(self, similarity_table, samples_table):
-        if self.dku_config.ratings_column_name:
-            return (
-                Column(constants.SIMILARITY_COLUMN_NAME, table_name=similarity_table)
-                .times(Column(self.dku_config.ratings_column_name, table_name=samples_table))
-                .sum()
-                .div(Column(constants.SIMILARITY_COLUMN_NAME, table_name=similarity_table).abs().sum())
-            )
+        if self.use_explicit:
+            if self.rating_normalization:
+                # cannot add the rating average (to get rating predictions directly) of the similarity_table.user_1 because it's not in the similarity_table
+                return (
+                    Column(constants.SIMILARITY_COLUMN_NAME, table_name=similarity_table)
+                    .times(
+                        Column(self.dku_config.ratings_column_name, table_name=samples_table).minus(
+                            Column(self.RATING_AVERAGE, table_name=samples_table)
+                        )
+                    )
+                    .sum()
+                    .div(Column(constants.SIMILARITY_COLUMN_NAME, table_name=similarity_table).abs().sum())
+                )
+            else:
+                return (
+                    Column(constants.SIMILARITY_COLUMN_NAME, table_name=similarity_table)
+                    .times(Column(self.dku_config.ratings_column_name, table_name=samples_table))
+                    .sum()
+                    .div(Column(constants.SIMILARITY_COLUMN_NAME, table_name=similarity_table).abs().sum())
+                )
         else:
             return (
                 Column(constants.SIMILARITY_COLUMN_NAME, table_name=similarity_table)
