@@ -11,10 +11,9 @@ class ScoringHandler(QueryHandler):
     # VISIT_COUNT_TABLE_ALIAS = "visit_count"
     NB_VISIT_USER_AS = "_nb_visit_user"
     NB_VISIT_ITEM_AS = "_nb_visit_item"
-    VISIT_USER_NORMED_AS = "_visit_user_normed"
-    VISIT_ITEM_NORMED_AS = "_visit_item_normed"
-    LEFT_NORMED_COUNT_AS = "_left_normed_count"
-    RIGHT_NORMED_COUNT_AS = "_right_normed_count"
+    NORMALIZATION_FACTOR_AS = "_normalization_factor"
+    LEFT_NORMALIZATION_FACTOR_AS = "_left_normalization_factor"
+    RIGHT_NORMALIZATION_FACTOR_AS = "_right_normalization_factor"
     ROW_NUMBER_AS = "_row_number"
     TIMESTAMP_FILTERED_ROW_NB = "_timestamp_filtered_row_nb"
 
@@ -36,6 +35,7 @@ class ScoringHandler(QueryHandler):
             ts_row_numbers = SelectQuery()
             ts_row_numbers.select_from(select_from_inner, alias=select_from_as_inner)
 
+            # TODO no need for timestamp column
             self._select_columns_list(
                 ts_row_numbers, column_names=self.precomputation_columns, table_name=select_from_as_inner
             )
@@ -63,6 +63,7 @@ class ScoringHandler(QueryHandler):
         timestamp_filtered = SelectQuery()
         timestamp_filtered.select_from(built_ts_row_numbers, alias=ts_row_numbers_alias)
 
+        # TODO no need for timestamp column
         self._select_columns_list(
             timestamp_filtered, column_names=self.precomputation_columns, table_name=ts_row_numbers_alias
         )
@@ -93,36 +94,34 @@ class ScoringHandler(QueryHandler):
         )
         return visit_count
 
-    def _build_normed_count(self, select_from, select_from_as="_visit_count"):
-        # normalise total visits
-        normed_count = SelectQuery()
-        normed_count.select_from(select_from, alias=select_from_as)
+    def _build_normalization_factor(self, select_from, select_from_as="_visit_count"):
+        # compute normalization factor
+        normalization_factor = SelectQuery()
+        normalization_factor.select_from(select_from, alias=select_from_as)
 
-        self._select_columns_list(normed_count, column_names=self.precomputation_columns, table_name=select_from_as)
+        self._select_columns_list(
+            normalization_factor, column_names=self.precomputation_columns, table_name=select_from_as
+        )
 
         rating_column = (
             Column(self.dku_config.ratings_column_name) if self.dku_config.ratings_column_name else Constant(1)
         )
 
-        normed_count.select(
-            self._get_visit_normalization(Column(self.dku_config.users_column_name), rating_column),
-            alias=self.VISIT_USER_NORMED_AS,
-        )
-        normed_count.select(
-            self._get_visit_normalization(Column(self.dku_config.items_column_name), rating_column),
-            alias=self.VISIT_ITEM_NORMED_AS,
+        normalization_factor.select(
+            self._get_normalization_factor_formula(Column(self.based_column), rating_column),
+            alias=self.NORMALIZATION_FACTOR_AS,
         )
 
-        self.precomputation_columns = self.sample_keys.copy() + [self.VISIT_USER_NORMED_AS, self.VISIT_ITEM_NORMED_AS]
+        self.precomputation_columns += [self.NORMALIZATION_FACTOR_AS]
 
         # keep only items and users with enough visits
-        normed_count.where(
+        normalization_factor.where(
             Column(self.NB_VISIT_USER_AS, table_name=select_from_as).ge(Constant(self.dku_config.user_visit_threshold))
         )
-        normed_count.where(
+        normalization_factor.where(
             Column(self.NB_VISIT_ITEM_AS, table_name=select_from_as).ge(Constant(self.dku_config.item_visit_threshold))
         )
-        return normed_count
+        return normalization_factor
 
     def _build_similarity(self, select_from):
         ordered_similarity = self._build_ordered_similarity(select_from)
@@ -165,33 +164,34 @@ class ScoringHandler(QueryHandler):
 
         return similarity
 
-    def _build_ordered_similarity(self, select_from, with_clause_as="_with_clause_normed_count"):
+    def _build_ordered_similarity(self, select_from, with_clause_as="_with_clause_normalization_factor"):
         """Build a similarity table col_1, col_2, similarity where col_1 < col_2 """
         similarity = SelectQuery()
         similarity.with_cte(select_from, alias=with_clause_as)
-        similarity.select_from(with_clause_as, alias=self.LEFT_NORMED_COUNT_AS)
+        similarity.select_from(with_clause_as, alias=self.LEFT_NORMALIZATION_FACTOR_AS)
 
         join_conditions = [
-            Column(self.pivot_column, self.LEFT_NORMED_COUNT_AS).eq_null_unsafe(
-                Column(self.pivot_column, self.RIGHT_NORMED_COUNT_AS)
+            Column(self.pivot_column, self.LEFT_NORMALIZATION_FACTOR_AS).eq_null_unsafe(
+                Column(self.pivot_column, self.RIGHT_NORMALIZATION_FACTOR_AS)
             ),
-            Column(self.based_column, self.LEFT_NORMED_COUNT_AS).lt(
-                Column(self.based_column, self.RIGHT_NORMED_COUNT_AS)
+            Column(self.based_column, self.LEFT_NORMALIZATION_FACTOR_AS).lt(
+                Column(self.based_column, self.RIGHT_NORMALIZATION_FACTOR_AS)
             ),
         ]
-        similarity.join(with_clause_as, JoinTypes.INNER, join_conditions, alias=self.RIGHT_NORMED_COUNT_AS)
+        similarity.join(with_clause_as, JoinTypes.INNER, join_conditions, alias=self.RIGHT_NORMALIZATION_FACTOR_AS)
 
-        similarity.group_by(Column(self.based_column, table_name=self.LEFT_NORMED_COUNT_AS))
-        similarity.group_by(Column(self.based_column, table_name=self.RIGHT_NORMED_COUNT_AS))
+        similarity.group_by(Column(self.based_column, table_name=self.LEFT_NORMALIZATION_FACTOR_AS))
+        similarity.group_by(Column(self.based_column, table_name=self.RIGHT_NORMALIZATION_FACTOR_AS))
 
         similarity.select(
-            Column(self.based_column, table_name=self.LEFT_NORMED_COUNT_AS), alias=f"{self.based_column}_1"
+            Column(self.based_column, table_name=self.LEFT_NORMALIZATION_FACTOR_AS), alias=f"{self.based_column}_1"
         )
         similarity.select(
-            Column(self.based_column, table_name=self.RIGHT_NORMED_COUNT_AS), alias=f"{self.based_column}_2"
+            Column(self.based_column, table_name=self.RIGHT_NORMALIZATION_FACTOR_AS), alias=f"{self.based_column}_2"
         )
 
         similarity.select(self._get_similarity_formula(), alias=constants.SIMILARITY_COLUMN_NAME)
+
         return similarity
 
     def _build_row_numbers(self, select_from, select_from_as="_similarity_matrix"):
@@ -230,23 +230,25 @@ class ScoringHandler(QueryHandler):
         )
         return top_n
 
-    def _build_sum_of_similarity_scores(self, top_n, normed_count, top_n_as="_top_n", normed_count_as="_normed_count"):
+    def _build_sum_of_similarity_scores(
+        self, top_n, normalization_factor, top_n_as="_top_n", normalization_factor_as="_normalization_factor"
+    ):
         cf_scores = SelectQuery()
         cf_scores.select_from(top_n, alias=top_n_as)
 
         join_condition = Column(f"{self.based_column}_2", top_n_as).eq_null_unsafe(
-            Column(self.based_column, normed_count_as)
+            Column(self.based_column, normalization_factor_as)
         )
-        cf_scores.join(normed_count, JoinTypes.INNER, join_condition, alias=normed_count_as)
+        cf_scores.join(normalization_factor, JoinTypes.INNER, join_condition, alias=normalization_factor_as)
 
         cf_scores.group_by(Column(f"{self.based_column}_1", table_name=top_n_as))
-        cf_scores.group_by(Column(self.pivot_column, table_name=normed_count_as))
+        cf_scores.group_by(Column(self.pivot_column, table_name=normalization_factor_as))
 
         cf_scores.select(Column(f"{self.based_column}_1", table_name=top_n_as), alias=self.based_column)
-        cf_scores.select(Column(self.pivot_column, table_name=normed_count_as))
+        cf_scores.select(Column(self.pivot_column, table_name=normalization_factor_as))
 
         cf_scores.select(
-            Column(constants.SIMILARITY_COLUMN_NAME, table_name=top_n_as).sum(), alias=constants.SCORE_COLUMN_NAME
+            self._get_user_item_similarity_formula(top_n_as, normalization_factor_as), alias=constants.SCORE_COLUMN_NAME
         )
 
         cf_scores.order_by(Column(self.based_column))
@@ -264,42 +266,64 @@ class ScoringHandler(QueryHandler):
             )
         samples_cast = self._cast_table(samples_dataset, cast_mapping, alias="_raw_input_dataset")
         visit_count = self._build_visit_count(samples_cast)
-        normed_count = self._build_normed_count(visit_count)
+        normalization_factor = self._build_normalization_factor(visit_count)
         if self.timestamp_filtering:
-            timestamp_filtered = self._build_timestamp_filtered(normed_count)
+            timestamp_filtered = self._build_timestamp_filtered(normalization_factor)
         else:
-            timestamp_filtered = normed_count
+            timestamp_filtered = normalization_factor
         return timestamp_filtered
 
-    def _build_collaborative_filtering(self, similarity, normed_count):
+    def _build_collaborative_filtering(self, similarity, normalization_factor):
         row_numbers = self._build_row_numbers(similarity)
         top_n = self._build_top_n(row_numbers)
-        cf_scores = self._build_sum_of_similarity_scores(top_n, normed_count)
+        cf_scores = self._build_sum_of_similarity_scores(top_n, normalization_factor)
         return cf_scores
 
-    def _get_visit_normalization(self, column_to_norm, rating_column):
+    def _get_normalization_factor_formula(self, partition_column, rating_column):
         if self.dku_config.normalization_method == constants.NORMALIZATION_METHOD.L1:
             logger.debug("Using L1 normalization")
-            return rating_column.div(rating_column.abs().sum().over(Window(partition_by=[column_to_norm])))
+            return Constant(1).div(rating_column.abs().sum().over(Window(partition_by=[partition_column])))
         elif self.dku_config.normalization_method == constants.NORMALIZATION_METHOD.L2:
             logger.debug("Using L2 normalization")
-            return rating_column.div(
-                rating_column.times(rating_column).sum().over(Window(partition_by=[column_to_norm])).sqrt()
+            return Constant(1).div(
+                rating_column.times(rating_column).sum().over(Window(partition_by=[partition_column])).sqrt()
             )
 
     def _get_similarity_formula(self):
         rounding_decimals = 15
-        column_to_sum = self.VISIT_USER_NORMED_AS if self.is_user_based else self.VISIT_ITEM_NORMED_AS
         rounding_expression = Constant(10 ** rounding_decimals)
         logger.debug(f"Rounding similarity to {rounding_decimals} decimals")
+
+        if self.dku_config.ratings_column_name:
+            rating_product = Column(
+                self.dku_config.ratings_column_name, table_name=self.LEFT_NORMALIZATION_FACTOR_AS
+            ).times(Column(self.dku_config.ratings_column_name, table_name=self.RIGHT_NORMALIZATION_FACTOR_AS))
+        else:
+            rating_product = Constant(1)
+
         return (
-            Column(column_to_sum, table_name=self.LEFT_NORMED_COUNT_AS)
-            .times(Column(column_to_sum, table_name=self.RIGHT_NORMED_COUNT_AS))
+            rating_product.times(Column(self.NORMALIZATION_FACTOR_AS, table_name=self.LEFT_NORMALIZATION_FACTOR_AS))
+            .times(Column(self.NORMALIZATION_FACTOR_AS, table_name=self.RIGHT_NORMALIZATION_FACTOR_AS))
             .sum()
             .times(rounding_expression)
             .round()
             .div(rounding_expression)
         )
+
+    def _get_user_item_similarity_formula(self, similarity_table, samples_table):
+        if self.dku_config.ratings_column_name:
+            return (
+                Column(constants.SIMILARITY_COLUMN_NAME, table_name=similarity_table)
+                .times(Column(self.dku_config.ratings_column_name, table_name=samples_table))
+                .sum()
+                .div(Column(constants.SIMILARITY_COLUMN_NAME, table_name=similarity_table).abs().sum())
+            )
+        else:
+            return (
+                Column(constants.SIMILARITY_COLUMN_NAME, table_name=similarity_table)
+                .sum()
+                .div(Constant(self.dku_config.top_n_most_similar))
+            )
 
     def _assign_scoring_mode(self, is_user_based):
         if is_user_based:

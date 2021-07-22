@@ -31,9 +31,9 @@ class CustomScoringHandler(ScoringHandler):
         return similarity_cast
 
     def build(self):
-        normed_count = self._prepare_samples()
+        normalization_factor = self._prepare_samples()
         similarity = self._prepare_similarity_input()
-        cf_scores = self._build_collaborative_filtering(similarity, normed_count)
+        cf_scores = self._build_collaborative_filtering(similarity, normalization_factor)
         self._execute(cf_scores, self.file_manager.scored_samples_dataset)
         self._set_column_description(self.file_manager.scored_samples_dataset)
 
