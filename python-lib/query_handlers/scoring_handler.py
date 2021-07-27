@@ -208,28 +208,28 @@ class ScoringHandler(QueryHandler):
             similarity.with_cte(select_from, alias=with_clause_as)
             select_from = with_clause_as
 
-        similarity.select_from(select_from, alias=self.LEFT_NORMED_COUNT_AS)
+        similarity.select_from(select_from, alias=self.LEFT_NORMALIZATION_FACTOR_AS)
 
         join_conditions = [
-            Column(self.pivot_column, self.LEFT_NORMED_COUNT_AS).eq_null_unsafe(
-                Column(self.pivot_column, self.RIGHT_NORMED_COUNT_AS)
+            Column(self.pivot_column, self.LEFT_NORMALIZATION_FACTOR_AS).eq_null_unsafe(
+                Column(self.pivot_column, self.RIGHT_NORMALIZATION_FACTOR_AS)
             )
         ]
 
         if self.supports_full_outer_join:
             join_conditions += [
-                Column(self.based_column, self.LEFT_NORMED_COUNT_AS).lt(
-                    Column(self.based_column, self.RIGHT_NORMED_COUNT_AS)
+                Column(self.based_column, self.LEFT_NORMALIZATION_FACTOR_AS).lt(
+                    Column(self.based_column, self.RIGHT_NORMALIZATION_FACTOR_AS)
                 )
             ]
         else:
             join_conditions += [
-                Column(self.based_column, self.LEFT_NORMED_COUNT_AS).ne(
-                    Column(self.based_column, self.RIGHT_NORMED_COUNT_AS)
+                Column(self.based_column, self.LEFT_NORMALIZATION_FACTOR_AS).ne(
+                    Column(self.based_column, self.RIGHT_NORMALIZATION_FACTOR_AS)
                 )
             ]
 
-        similarity.join(select_from, JoinTypes.INNER, join_conditions, alias=self.RIGHT_NORMED_COUNT_AS)
+        similarity.join(select_from, JoinTypes.INNER, join_conditions, alias=self.RIGHT_NORMALIZATION_FACTOR_AS)
 
         similarity.group_by(Column(self.based_column, table_name=self.LEFT_NORMALIZATION_FACTOR_AS))
         similarity.group_by(Column(self.based_column, table_name=self.RIGHT_NORMALIZATION_FACTOR_AS))
