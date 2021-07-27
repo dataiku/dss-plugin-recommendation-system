@@ -1,11 +1,7 @@
 {
     "meta": {
-        "label": "App of a complete recommendation system workflow",
-        "description": "Use this app to create a complete workflow from an input SQL table.",
-        "icon": "icon-puzzle-piece"
+        "label": "Recommendation System App",
+        "description": "Use this app to generate a complete recommendation system flow from an input SQL table",
+        "icon": "icon-group"
     }
-    /*
-        // name of an image in the resource/ folder of the plugin: used only for the dataiku application
-        , "appImageFilename": "image.png"
-    */
 }

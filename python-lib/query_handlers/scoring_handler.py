@@ -1,6 +1,5 @@
 from query_handlers import QueryHandler
-from dataiku.sql import JoinTypes, Expression, Column, Constant, InlineSQL, SelectQuery, Table, Dialects, toSQL, Window
-from dataiku.core.sql import SQLExecutor2
+from dataiku.sql import JoinTypes, Expression, Column, Constant, SelectQuery, Window
 import dku_constants as constants
 import logging
 
@@ -57,6 +56,7 @@ class ScoringHandler(QueryHandler):
                             Column(self.pivot_column, table_name=select_from_as_inner),
                         ],
                         order_types=["DESC", "DESC"],
+                        mode=None,
                     )
                 )
             )
@@ -91,11 +91,25 @@ class ScoringHandler(QueryHandler):
         self._select_columns_list(visit_count, column_names=columns_to_select, table_name=select_from_as)
 
         visit_count.select(
-            Column("*").count().over(Window(partition_by=[Column(self.dku_config.users_column_name)])),
+            Column("*")
+            .count()
+            .over(
+                Window(
+                    partition_by=[Column(self.dku_config.users_column_name)],
+                    mode=None,
+                )
+            ),
             alias=self.NB_VISIT_USER_AS,
         )
         visit_count.select(
-            Column("*").count().over(Window(partition_by=[Column(self.dku_config.items_column_name)])),
+            Column("*")
+            .count()
+            .over(
+                Window(
+                    partition_by=[Column(self.dku_config.items_column_name)],
+                    mode=None,
+                )
+            ),
             alias=self.NB_VISIT_ITEM_AS,
         )
         if self.use_explicit and self.rating_normalization:
@@ -139,9 +153,11 @@ class ScoringHandler(QueryHandler):
         return normalization_factor
 
     def _build_similarity(self, select_from):
-        ordered_similarity = self._build_ordered_similarity(select_from)
-        similarity = self._build_unordered_similarity(ordered_similarity)
-        return similarity
+        similarity = self._build_ordered_similarity(select_from)
+        if self.supports_full_outer_join:
+            return self._build_unordered_similarity(similarity)
+        else:
+            return similarity
 
     def _build_unordered_similarity(
         self,
@@ -152,11 +168,16 @@ class ScoringHandler(QueryHandler):
     ):
         """Retrieve both pairs (when col_1 < col_2 and col_1 > col_2) from the ordered similarity table"""
         similarity = SelectQuery()
-        similarity.with_cte(select_from, alias=with_clause_as)
-        similarity.select_from(with_clause_as, alias=left_select_from_as)
+
+        if self.supports_with_clause:
+            similarity.with_cte(select_from, alias=with_clause_as)
+            select_from = with_clause_as
+
+        similarity.select_from(select_from, alias=left_select_from_as)
+
         join_condition = Constant(1).eq_null_unsafe(Constant(0))
 
-        similarity.join(with_clause_as, JoinTypes.FULL, join_condition, alias=right_select_from_as)
+        similarity.join(select_from, JoinTypes.FULL, join_condition, alias=right_select_from_as)
 
         similarity.select(
             Column(f"{self.based_column}_1", table_name=left_select_from_as).coalesce(
@@ -182,18 +203,33 @@ class ScoringHandler(QueryHandler):
     def _build_ordered_similarity(self, select_from, with_clause_as="_with_clause_normalization_factor"):
         """Build a similarity table col_1, col_2, similarity where col_1 < col_2 """
         similarity = SelectQuery()
-        similarity.with_cte(select_from, alias=with_clause_as)
-        similarity.select_from(with_clause_as, alias=self.LEFT_NORMALIZATION_FACTOR_AS)
+
+        if self.supports_with_clause:
+            similarity.with_cte(select_from, alias=with_clause_as)
+            select_from = with_clause_as
+
+        similarity.select_from(select_from, alias=self.LEFT_NORMED_COUNT_AS)
 
         join_conditions = [
-            Column(self.pivot_column, self.LEFT_NORMALIZATION_FACTOR_AS).eq_null_unsafe(
-                Column(self.pivot_column, self.RIGHT_NORMALIZATION_FACTOR_AS)
-            ),
-            Column(self.based_column, self.LEFT_NORMALIZATION_FACTOR_AS).lt(
-                Column(self.based_column, self.RIGHT_NORMALIZATION_FACTOR_AS)
-            ),
+            Column(self.pivot_column, self.LEFT_NORMED_COUNT_AS).eq_null_unsafe(
+                Column(self.pivot_column, self.RIGHT_NORMED_COUNT_AS)
+            )
         ]
-        similarity.join(with_clause_as, JoinTypes.INNER, join_conditions, alias=self.RIGHT_NORMALIZATION_FACTOR_AS)
+
+        if self.supports_full_outer_join:
+            join_conditions += [
+                Column(self.based_column, self.LEFT_NORMED_COUNT_AS).lt(
+                    Column(self.based_column, self.RIGHT_NORMED_COUNT_AS)
+                )
+            ]
+        else:
+            join_conditions += [
+                Column(self.based_column, self.LEFT_NORMED_COUNT_AS).ne(
+                    Column(self.based_column, self.RIGHT_NORMED_COUNT_AS)
+                )
+            ]
+
+        similarity.join(select_from, JoinTypes.INNER, join_conditions, alias=self.RIGHT_NORMED_COUNT_AS)
 
         similarity.group_by(Column(self.based_column, table_name=self.LEFT_NORMALIZATION_FACTOR_AS))
         similarity.group_by(Column(self.based_column, table_name=self.RIGHT_NORMALIZATION_FACTOR_AS))
@@ -227,6 +263,7 @@ class ScoringHandler(QueryHandler):
                         Column(f"{self.based_column}_2", table_name=select_from_as),
                     ],
                     order_types=["DESC", "DESC"],
+                    mode=None,
                 )
             )
         )
