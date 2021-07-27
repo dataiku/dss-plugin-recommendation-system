@@ -2,7 +2,7 @@
     "meta": {
         "label": "Auto collaborative filtering",
         "description": "Compute collaborative filtering scores from a dataset of user-item samples",
-        "icon": "icon-beer"
+        "icon": "icon-group"
     },
     "kind": "PYTHON",
     "selectableFromDataset": "samples_dataset",

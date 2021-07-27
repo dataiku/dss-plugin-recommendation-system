@@ -1,5 +1,5 @@
 from query_handlers import QueryHandler
-from dataiku.sql import JoinTypes, Expression, Column, Constant, InlineSQL, SelectQuery, Table, Dialects, toSQL, Window
+from dataiku.sql import JoinTypes, Expression, Column, Constant, SelectQuery, Window
 import dku_constants as constants
 import logging
 
@@ -150,6 +150,7 @@ class SamplingHandler(QueryHandler):
                         ],
                         order_by=[Column(constants.TARGET_COLUMN_NAME, table_name=inner_select_from_as)],
                         order_types=["DESC"],
+                        mode=None,
                     )
                 )
             )
@@ -233,7 +234,6 @@ class SamplingHandler(QueryHandler):
         )
 
         null_scores_filtered = self._build_cf_scores_without_null(scored_samples_cast)
-
         all_cf_scores = self._build_all_cf_scores(null_scores_filtered, samples_for_training, samples_for_scores)
         all_cf_scores_with_target = self._build_all_cf_scores_with_target(all_cf_scores)
 
