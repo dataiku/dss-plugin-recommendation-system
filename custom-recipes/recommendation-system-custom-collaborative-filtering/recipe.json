@@ -1,7 +1,7 @@
 {
     "meta": {
         "label": "Custom collaborative filtering",
-        "description": "Compute affinity scores from a dataset of user-item samples and a dataset of similarity scores",
+        "description": "Compute affinity scores between users and items using a similarity scores dataset provided by the user.",
         "icon": "icon-group"
     },
     "kind": "PYTHON",
@@ -89,7 +89,7 @@
                 "double"
             ],
             "type": "COLUMN",
-            "description": "",
+            "description": "If selected, ratings will be used to compute both similarity and affinty scores.",
             "columnRole": "samples_dataset",
             "mandatory": false
         },
@@ -201,19 +201,20 @@
         {
             "type": "SEPARATOR",
             "name": "separator_preprocessing",
-            "label": "Preprocessing parameters"
+            "label": "Pre-processing parameters",
+            "description": "Parameters to filter the input dataset to reduce the computation size."
         },
         {
             "name": "user_visit_threshold",
-            "label": "Minimum visits per user",
-            "description": "Keep only users with more item interaction.",
+            "label": "Minimum interactions per user",
+            "description": "Keep only users that have interacted with more items.",
             "type": "INT",
             "defaultValue": 10
         },
         {
             "name": "item_visit_threshold",
-            "label": "Minimum visits per item",
-            "description": "Keep only items with more user interaction.",
+            "label": "Minimum interactions per item",
+            "description": "Keep only items that have interacted with more users.",
             "type": "INT",
             "defaultValue": 10
         },
@@ -244,8 +245,8 @@
         },
         {
             "name": "top_n_most_recent",
-            "label": "Nb. of items to keep per user",
-            "description": "Keep only the N most recent items per user based on the timestamp column.",
+            "label": "Nb. of interactions to keep per user",
+            "description": "Keep only the N most recent interactions per user based on the timestamp column.",
             "type": "INT",
             "defaultValue": 20,
             "visibilityCondition": "model.timestamp_filtering"
@@ -253,12 +254,13 @@
         {
             "type": "SEPARATOR",
             "name": "separator_parameters",
-            "label": "Affinity scores parameters"
+            "label": "Affinity scores parameters",
+            "description": "Affinity scores between users and items represent how likely is a user to interact positively with an item."
         },
         {
             "name": "top_n_most_similar",
-            "label": "Nb. of most similar users/items",
-            "description": "Keep only the top N most similar users/items to compute affinity scores.",
+            "label": "Nb. of similar neighbors to consider",
+            "description": "Compute affinity scores between a user u and an item i using the interactions of the top N users most similar to u (user-based) or the top N items most similar to i (item-based).",
             "type": "INT",
             "defaultValue": 10
         }
