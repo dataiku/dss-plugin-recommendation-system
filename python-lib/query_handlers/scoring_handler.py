@@ -335,14 +335,10 @@ class ScoringHandler(QueryHandler):
         return cf_scores
 
     def _get_normalization_factor_formula(self, partition_column, rating_column):
-        if self.dku_config.normalization_method == constants.NORMALIZATION_METHOD.L1:
-            logger.debug("Using L1 normalization")
-            return Constant(1).div(rating_column.abs().sum().over(Window(partition_by=[partition_column])))
-        elif self.dku_config.normalization_method == constants.NORMALIZATION_METHOD.L2:
-            logger.debug("Using L2 normalization")
-            return Constant(1).div(
-                rating_column.times(rating_column).sum().over(Window(partition_by=[partition_column])).sqrt()
-            )
+        logger.debug("Using L2 normalization")
+        return Constant(1).div(
+            rating_column.times(rating_column).sum().over(Window(partition_by=[partition_column])).sqrt()
+        )
 
     def _get_similarity_formula(self):
         rounding_decimals = 15

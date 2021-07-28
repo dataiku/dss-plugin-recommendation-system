@@ -113,23 +113,6 @@
             "defaultValue": 10
         },
         {
-            "name": "normalization_method",
-            "label": "Normalization method",
-            "description": "User-item visits are normalized using the selected method.",
-            "type": "SELECT",
-            "defaultValue": "l1_normalization",
-            "selectChoices": [
-                {
-                    "value": "l1_normalization",
-                    "label": "L1 normalization"
-                },
-                {
-                    "value": "l2_normalization",
-                    "label": "L2 normalization"
-                }
-            ]
-        },
-        {
             "name": "timestamp_filtering",
             "label": "Use timestamp filtering",
             "description": "Makes the computations faster but scores less user-item pairs.",

@@ -7,11 +7,6 @@ class RECIPE(Enum):
     SAMPLING = "sampling"
 
 
-class NORMALIZATION_METHOD(Enum):
-    L1 = "l1_normalization"
-    L2 = "l2_normalization"
-
-
 class SIMILARITY_TYPE(Enum):
     USER_SIMILARITY = "user_similarity"
     ITEM_SIMILARITY = "item_similarity"

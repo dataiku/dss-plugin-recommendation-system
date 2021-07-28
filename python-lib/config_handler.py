@@ -1,7 +1,6 @@
 from dku_config import DkuConfig
 from dku_constants import (
     RECIPE,
-    NORMALIZATION_METHOD,
     SIMILARITY_TYPE,
     SAMPLING_METHOD,
     CF_METHOD,
@@ -211,12 +210,6 @@ def add_scoring_config(dku_config, config, file_manager):
         value=config.get("item_visit_threshold"),
         required=True,
         checks=[{"type": "sup", "op": 0}],
-    )
-    dku_config.add_param(
-        name="normalization_method",
-        value=config.get("normalization_method"),
-        required=True,
-        cast_to=NORMALIZATION_METHOD,
     )
     dku_config.add_param(name="timestamp_filtering", value=config.get("timestamp_filtering", False), required=True)
 
