@@ -13,8 +13,8 @@ class AutoScoringHandler(ScoringHandler):
         self.output_similarity_matrix = self.file_manager.similarity_scores_dataset is not None
 
     def build(self):
-        normed_count = self._prepare_samples()
-        similarity = self._build_similarity(normed_count)
+        normalization_factor = self._prepare_samples()
+        similarity = self._build_similarity(normalization_factor)
 
         if self.output_similarity_matrix:
             logger.info("About to compute similarity matrix ...")
@@ -22,7 +22,7 @@ class AutoScoringHandler(ScoringHandler):
             self._set_column_description(self.file_manager.similarity_scores_dataset, constants.SIMILARITY_COLUMN_NAME)
             similarity = self.file_manager.similarity_scores_dataset
 
-        cf_scores = self._build_collaborative_filtering(similarity, normed_count)
+        cf_scores = self._build_collaborative_filtering(similarity, normalization_factor)
         self._execute(cf_scores, self.file_manager.scored_samples_dataset)
         self._set_column_description(self.file_manager.scored_samples_dataset, constants.SCORE_COLUMN_NAME)
 
