@@ -20,29 +20,26 @@ class ScoringHandler(QueryHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.sample_keys = [self.dku_config.users_column_name, self.dku_config.items_column_name]
-        self.precomputation_columns = self.sample_keys.copy()
+        self.similarity_computation_columns = self.sample_keys.copy()  # columns to keep to compute similarity
+        self.filtering_columns = []  # columns to keep for filtering
         self.use_explicit = bool(self.dku_config.ratings_column_name)
         self.timestamp_filtering = bool(self.dku_config.timestamp_filtering and self.dku_config.timestamps_column_name)
-        self.rating_normalization = False
+
         if self.use_explicit:
             logger.debug("Using explicit feedbacks")
-            self.precomputation_columns += [self.dku_config.ratings_column_name]
-
-            # TODO add a UI parameter to activate rating normalization (aka Pearson correlation else Cosine similarity)
-            self.rating_normalization = True
+            self.similarity_computation_columns += [self.dku_config.ratings_column_name]
 
         if self.timestamp_filtering:
             logger.debug("Using timestamp filtering")
-            self.precomputation_columns += [self.dku_config.timestamps_column_name]
+            self.filtering_columns += [self.dku_config.timestamps_column_name]
 
     def _build_timestamp_filtered(self, select_from, select_from_as="_prepared_input_dataset"):
         def _build_timestamp_filtered_row_number(select_from_inner, select_from_as_inner):
             ts_row_numbers = SelectQuery()
             ts_row_numbers.select_from(select_from_inner, alias=select_from_as_inner)
 
-            # TODO no need for timestamp column
             self._select_columns_list(
-                ts_row_numbers, column_names=self.precomputation_columns, table_name=select_from_as_inner
+                ts_row_numbers, column_names=self.similarity_computation_columns, table_name=select_from_as_inner
             )
 
             ts_row_number_expression = (
@@ -69,9 +66,8 @@ class ScoringHandler(QueryHandler):
         timestamp_filtered = SelectQuery()
         timestamp_filtered.select_from(built_ts_row_numbers, alias=ts_row_numbers_alias)
 
-        # TODO no need for timestamp column
         self._select_columns_list(
-            timestamp_filtered, column_names=self.precomputation_columns, table_name=ts_row_numbers_alias
+            timestamp_filtered, column_names=self.similarity_computation_columns, table_name=ts_row_numbers_alias
         )
 
         timestamp_filtered.where(
@@ -87,8 +83,11 @@ class ScoringHandler(QueryHandler):
         visit_count = SelectQuery()
         visit_count.select_from(select_from, alias=select_from_as)
 
-        columns_to_select = self.precomputation_columns
-        self._select_columns_list(visit_count, column_names=columns_to_select, table_name=select_from_as)
+        self._select_columns_list(
+            visit_count,
+            column_names=self.similarity_computation_columns + self.filtering_columns,
+            table_name=select_from_as,
+        )
 
         visit_count.select(
             Column("*")
@@ -112,14 +111,14 @@ class ScoringHandler(QueryHandler):
             ),
             alias=self.NB_VISIT_ITEM_AS,
         )
-        if self.use_explicit and self.rating_normalization:
+        if self.use_explicit:
             visit_count.select(
                 Column(self.dku_config.ratings_column_name)
                 .avg()
                 .over(Window(partition_by=[Column(self.based_column)])),
                 alias=self.RATING_AVERAGE,
             )
-            self.precomputation_columns += [self.RATING_AVERAGE]
+            self.similarity_computation_columns += [self.RATING_AVERAGE]
 
         return visit_count
 
@@ -129,19 +128,23 @@ class ScoringHandler(QueryHandler):
         normalization_factor.select_from(select_from, alias=select_from_as)
 
         self._select_columns_list(
-            normalization_factor, column_names=self.precomputation_columns, table_name=select_from_as
+            normalization_factor,
+            column_names=self.similarity_computation_columns + self.filtering_columns,
+            table_name=select_from_as,
         )
 
-        rating_column = Column(self.dku_config.ratings_column_name) if self.use_explicit else Constant(1)
-        if self.rating_normalization:
-            rating_column = rating_column.minus(Column(self.RATING_AVERAGE))
+        rating_column = (
+            Column(self.dku_config.ratings_column_name).minus(Column(self.RATING_AVERAGE))
+            if self.use_explicit
+            else Constant(1)
+        )
 
         normalization_factor.select(
             self._get_normalization_factor_formula(Column(self.based_column), rating_column),
             alias=self.NORMALIZATION_FACTOR_AS,
         )
 
-        self.precomputation_columns += [self.NORMALIZATION_FACTOR_AS]
+        self.similarity_computation_columns += [self.NORMALIZATION_FACTOR_AS]
 
         # keep only items and users with enough visits
         normalization_factor.where(
@@ -347,20 +350,16 @@ class ScoringHandler(QueryHandler):
         logger.debug(f"Rounding similarity to {rounding_decimals} decimals")
 
         if self.use_explicit:
-            if self.rating_normalization:
-                rating_product = (
-                    Column(self.dku_config.ratings_column_name, table_name=self.LEFT_NORMALIZATION_FACTOR_AS)
-                    .minus(Column(self.RATING_AVERAGE, table_name=self.LEFT_NORMALIZATION_FACTOR_AS))
-                    .times(
-                        Column(
-                            self.dku_config.ratings_column_name, table_name=self.RIGHT_NORMALIZATION_FACTOR_AS
-                        ).minus(Column(self.RATING_AVERAGE, table_name=self.RIGHT_NORMALIZATION_FACTOR_AS))
+            # compute Pearson correlation
+            rating_product = (
+                Column(self.dku_config.ratings_column_name, table_name=self.LEFT_NORMALIZATION_FACTOR_AS)
+                .minus(Column(self.RATING_AVERAGE, table_name=self.LEFT_NORMALIZATION_FACTOR_AS))
+                .times(
+                    Column(self.dku_config.ratings_column_name, table_name=self.RIGHT_NORMALIZATION_FACTOR_AS).minus(
+                        Column(self.RATING_AVERAGE, table_name=self.RIGHT_NORMALIZATION_FACTOR_AS)
                     )
                 )
-            else:
-                rating_product = Column(
-                    self.dku_config.ratings_column_name, table_name=self.LEFT_NORMALIZATION_FACTOR_AS
-                ).times(Column(self.dku_config.ratings_column_name, table_name=self.RIGHT_NORMALIZATION_FACTOR_AS))
+            )
         else:
             rating_product = Constant(1)
 
@@ -375,25 +374,16 @@ class ScoringHandler(QueryHandler):
 
     def _get_user_item_similarity_formula(self, similarity_table, samples_table):
         if self.use_explicit:
-            if self.rating_normalization:
-                # cannot add the rating average (to get rating predictions directly) of the similarity_table.user_1 because it's not in the similarity_table
-                return (
-                    Column(constants.SIMILARITY_COLUMN_NAME, table_name=similarity_table)
-                    .times(
-                        Column(self.dku_config.ratings_column_name, table_name=samples_table).minus(
-                            Column(self.RATING_AVERAGE, table_name=samples_table)
-                        )
+            return (
+                Column(constants.SIMILARITY_COLUMN_NAME, table_name=similarity_table)
+                .times(
+                    Column(self.dku_config.ratings_column_name, table_name=samples_table).minus(
+                        Column(self.RATING_AVERAGE, table_name=samples_table)
                     )
-                    .sum()
-                    .div(Column(constants.SIMILARITY_COLUMN_NAME, table_name=similarity_table).abs().sum())
                 )
-            else:
-                return (
-                    Column(constants.SIMILARITY_COLUMN_NAME, table_name=similarity_table)
-                    .times(Column(self.dku_config.ratings_column_name, table_name=samples_table))
-                    .sum()
-                    .div(Column(constants.SIMILARITY_COLUMN_NAME, table_name=similarity_table).abs().sum())
-                )
+                .sum()
+                .div(Column(constants.SIMILARITY_COLUMN_NAME, table_name=similarity_table).abs().sum())
+            )
         else:
             return (
                 Column(constants.SIMILARITY_COLUMN_NAME, table_name=similarity_table)
