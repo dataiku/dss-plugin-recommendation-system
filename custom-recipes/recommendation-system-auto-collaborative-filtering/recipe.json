@@ -1,0 +1,186 @@
+{
+    "meta": {
+        "label": "Auto collaborative filtering",
+        "description": "First compute similarity scores between pairs of users or pairs of items. Then, compute affinity scores between users and items using the previous similarity scores.",
+        "icon": "icon-group"
+    },
+    "kind": "PYTHON",
+    "selectableFromDataset": "samples_dataset",
+    "inputRoles": [
+        {
+            "name": "samples_dataset",
+            "label": "Samples dataset",
+            "description": "Dataset of user-item samples",
+            "arity": "UNARY",
+            "required": true,
+            "acceptsDataset": true,
+            "mustBeSQL": true
+        }
+    ],
+    "outputRoles": [
+        {
+            "name": "scored_samples_dataset",
+            "label": "Scored samples dataset",
+            "description": "Dataset of user-item samples with collaborative filtering scores",
+            "arity": "UNARY",
+            "required": true,
+            "acceptsDataset": true,
+            "mustBeSQL": true
+        },
+        {
+            "name": "similarity_scores_dataset",
+            "label": "(Optional) Similarity scores dataset",
+            "description": "Dataset of similarity scores used to compute the collaborative filtering scores",
+            "arity": "UNARY",
+            "required": false,
+            "acceptsDataset": true,
+            "mustBeSQL": true
+        }
+    ],
+    "params": [
+        {
+            "type": "SEPARATOR",
+            "name": "separator_input",
+            "label": "Input parameters"
+        },
+        {
+            "name": "users_column_name",
+            "label": "Users column",
+            "allowedColumnTypes": [
+                "tinyint",
+                "smallint",
+                "int",
+                "bigint",
+                "float",
+                "double",
+                "string"
+            ],
+            "type": "COLUMN",
+            "description": "",
+            "columnRole": "samples_dataset",
+            "mandatory": true
+        },
+        {
+            "name": "items_column_name",
+            "label": "Items column",
+            "allowedColumnTypes": [
+                "tinyint",
+                "smallint",
+                "int",
+                "bigint",
+                "float",
+                "double",
+                "string"
+            ],
+            "type": "COLUMN",
+            "description": "",
+            "columnRole": "samples_dataset",
+            "mandatory": true
+        },
+        {
+            "name": "ratings_column_name",
+            "label": "(Optional) Ratings column",
+            "allowedColumnTypes": [
+                "tinyint",
+                "smallint",
+                "int",
+                "bigint",
+                "float",
+                "double"
+            ],
+            "type": "COLUMN",
+            "description": "If selected, ratings will be used to compute both similarity and affinty scores.",
+            "columnRole": "samples_dataset",
+            "mandatory": false
+        },
+        {
+            "type": "SEPARATOR",
+            "name": "separator_preprocessing",
+            "label": "Pre-processing parameters",
+            "description": "Parameters to filter the input dataset to reduce the computation size."
+        },
+        {
+            "name": "user_visit_threshold",
+            "label": "Minimum interactions per user",
+            "description": "Keep only users that have interacted with more items.",
+            "type": "INT",
+            "defaultValue": 10
+        },
+        {
+            "name": "item_visit_threshold",
+            "label": "Minimum interactions per item",
+            "description": "Keep only items that have interacted with more users.",
+            "type": "INT",
+            "defaultValue": 10
+        },
+        {
+            "name": "timestamp_filtering",
+            "label": "Use timestamp filtering",
+            "description": "Makes the computations faster but scores less user-item pairs.",
+            "type": "BOOLEAN",
+            "defaultValue": false
+        },
+        {
+            "name": "timestamps_column_name",
+            "label": "Timestamp column",
+            "description": "Column used to order items per user (higher values means more recent).",
+            "allowedColumnTypes": [
+                "date",
+                "tinyint",
+                "smallint",
+                "int",
+                "bigint",
+                "float",
+                "double"
+            ],
+            "type": "COLUMN",
+            "columnRole": "samples_dataset",
+            "mandatory": false,
+            "visibilityCondition": "model.timestamp_filtering"
+        },
+        {
+            "name": "top_n_most_recent",
+            "label": "Nb. of interactions to keep per user",
+            "description": "Keep only the N most recent interactions per user based on the timestamp column.",
+            "type": "INT",
+            "defaultValue": 20,
+            "visibilityCondition": "model.timestamp_filtering"
+        },
+        {
+            "type": "SEPARATOR",
+            "name": "separator_parameters",
+            "label": "Similarity scores parameters",
+            "description": "Similarity scores between pairs of users (user-based) or pairs of items (item-based) reflect how similar their interactions were."
+        },
+        {
+            "name": "collaborative_filtering_method",
+            "label": "Collaborative filtering method",
+            "type": "SELECT",
+            "defaultValue": "user_based",
+            "selectChoices": [
+                {
+                    "value": "user_based",
+                    "label": "User-based"
+                },
+                {
+                    "value": "item_based",
+                    "label": "Item-based"
+                }
+            ]
+        },
+        {
+            "type": "SEPARATOR",
+            "name": "separator_parameters",
+            "label": "Affinity scores parameters",
+            "description": "Affinity scores between users and items represent how likely is a user to interact positively with an item."
+        },
+        {
+            "name": "top_n_most_similar",
+            "label": "Nb. of similar neighbors to consider",
+            "description": "Compute affinity scores between a user u and an item i using the interactions of the top N users most similar to u (user-based) or the top N items most similar to i (item-based).",
+            "type": "INT",
+            "defaultValue": 10
+        }
+    ],
+    "resourceKeys": []
+}
