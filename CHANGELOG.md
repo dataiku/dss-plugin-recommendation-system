@@ -1,13 +1,6 @@
 # Changelog
 
-## Version X.Y.Z - Type of release (*) - YYYY-MM-DD
-- Changes 1 ...
-- Changes 2 ... 
-- ...
-
-(*) Possible types of releases
-
-- Initial release
-- Bugfix release
-- Feature release
-- .... 
+## Version 0.0.1 - Features release- 2021-09-DD
+- Created plugin
+- Added recipes
+- Added Dataiku Application
