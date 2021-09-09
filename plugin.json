@@ -1,6 +1,6 @@
 {
     "id": "recommendation-system",
-    "version": "0.0.0",
+    "version": "0.0.1",
     "meta": {
         "label": "Recommendation system",
         "category": "Recommendation",
@@ -8,9 +8,9 @@
         "author": "Dataiku",
         "icon": "icon-group",
         "licenseInfo": "Apache Software License",
-        "url": "https://www.dataiku.com/product/plugins/your-plugin-id/",
+        "url": "https://www.dataiku.com/product/plugins/recommendation-system/",
         "tags": [
-            "myTag"
+            "Recommendation"
         ],
         "supportLevel": "NOT_SUPPORTED"
     }
