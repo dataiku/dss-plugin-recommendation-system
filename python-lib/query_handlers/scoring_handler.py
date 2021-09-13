@@ -115,7 +115,12 @@ class ScoringHandler(QueryHandler):
             visit_count.select(
                 Column(self.dku_config.ratings_column_name)
                 .avg()
-                .over(Window(partition_by=[Column(self.based_column)])),
+                .over(
+                    Window(
+                        partition_by=[Column(self.based_column)],
+                        mode=None
+                    )
+                ),
                 alias=self.RATING_AVERAGE,
             )
             self.similarity_computation_columns += [self.RATING_AVERAGE]
@@ -337,7 +342,7 @@ class ScoringHandler(QueryHandler):
     def _get_normalization_factor_formula(self, partition_column, rating_column):
         logger.debug("Using L2 normalization")
         return Constant(1).div(
-            rating_column.times(rating_column).sum().over(Window(partition_by=[partition_column])).sqrt()
+            rating_column.times(rating_column).sum().over(Window(partition_by=[partition_column], mode=None)).sqrt()
         )
 
     def _get_similarity_formula(self):
