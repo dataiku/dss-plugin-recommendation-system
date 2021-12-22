@@ -6,7 +6,7 @@
         "category": "Recommendation",
         "description": "Recommendation system toolkit",
         "author": "Dataiku",
-        "icon": "icon-group",
+        "icon": "icon-dku-collaborative-filtering icon-group",
         "licenseInfo": "Apache Software License",
         "url": "https://www.dataiku.com/product/plugins/recommendation-system/",
         "tags": [

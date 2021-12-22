@@ -2,7 +2,7 @@
     "meta": {
         "label": "Auto collaborative filtering",
         "description": "First compute similarity scores between pairs of users or pairs of items. Then, compute affinity scores between users and items using the previous similarity scores.",
-        "icon": "icon-group"
+        "icon": "icon-dku-collaborative-filtering icon-group"
     },
     "kind": "PYTHON",
     "selectableFromDataset": "samples_dataset",
