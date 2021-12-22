@@ -2,7 +2,7 @@
     "meta": {
         "label": "Custom collaborative filtering",
         "description": "Compute affinity scores between users and items using a similarity scores dataset provided by the user.",
-        "icon": "icon-dku-collaborative-filtering"
+        "icon": "icon-dku-collaborative-filtering icon-group"
     },
     "kind": "PYTHON",
     "selectableFromDataset": "samples_dataset",
