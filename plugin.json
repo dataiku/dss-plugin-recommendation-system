@@ -4,7 +4,7 @@
     "meta": {
         "label": "Recommendation system",
         "category": "Recommendation",
-        "description": "Includes recipes to perform collaborative filtering, a recipe for negative sampling, and a dataiku app to create a first recommendation system workflow from scratch.",
+        "description": "Recommendation system toolkit: includes recipes to perform collaborative filtering, a recipe for negative sampling, and a dataiku app to create a first recommendation system workflow from scratch.",
         "author": "Dataiku",
         "icon": "icon-dku-collaborative-filtering icon-group",
         "licenseInfo": "Apache Software License",
