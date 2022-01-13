@@ -1,10 +1,10 @@
 {
     "id": "recommendation-system",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "meta": {
         "label": "Recommendation system",
         "category": "Recommendation",
-        "description": "Recommendation system toolkit",
+        "description": "Recommendation system toolkit: includes recipes to perform collaborative filtering, a recipe for negative sampling, and a dataiku app to create a first recommendation system workflow from scratch.",
         "author": "Dataiku",
         "icon": "icon-dku-collaborative-filtering icon-group",
         "licenseInfo": "Apache Software License",
