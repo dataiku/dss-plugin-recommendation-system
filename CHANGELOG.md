@@ -1,5 +1,9 @@
 # Changelog
 
+## Version 0.0.3 - Features release- 2022-04
+- Add python 3.7 support
+
+
 ## Version 0.0.2 - Features release- 2022-01
 - Update plugin description
 
