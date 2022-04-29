@@ -1,6 +1,6 @@
 {
     "id": "recommendation-system",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "meta": {
         "label": "Recommendation system",
         "category": "Recommendation",
