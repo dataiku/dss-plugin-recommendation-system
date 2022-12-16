@@ -1,8 +1,0 @@
-{
-    "meta": {
-        "label": "Recommendation System App",
-        "description": "Use this app to generate a complete recommendation system flow from an input SQL table",
-        "icon": "icon-group"
-    },
-    "appImageFilename": "dku-application-icon.jpg"
-}

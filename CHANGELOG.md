@@ -1,5 +1,9 @@
 # Changelog
 
+## Version 1.0.0 - Features release- 2022-12
+- Remove Dataiku application
+
+
 ## Version 0.0.3 - Features release- 2022-04
 - Add python 3.7 support
 
