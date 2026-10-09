@@ -1,5 +1,10 @@
 # Changelog
 
+## Version 0.1.0 - Enhancement release - 2026-10-09
+
+- Added supported Python versions: 3.12, 3.13, 3.14
+- Makefile cleanup: release_info.json lines removed
+
 ## Version 0.0.4 - Features release - 2023-04
 - Add python 3.8, 3.9, 3.10, 3.11 support
 
