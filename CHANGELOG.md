@@ -4,6 +4,7 @@
 
 - Added supported Python versions: 3.12, 3.13, 3.14
 - Makefile cleanup: release_info.json lines removed
+- Removed category and updated tags
 
 ## Version 0.0.4 - Features release - 2023-04
 - Add python 3.8, 3.9, 3.10, 3.11 support
