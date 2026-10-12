@@ -1,4 +1,4 @@
 pytest
 requests<2.22,>=2
-dataiku-api-client
+dataiku-api-client==14.3.0
 git+https://github.com/dataiku/dataiku-plugin-tests-utils.git@master#egg=dataiku-plugin-tests-utils
