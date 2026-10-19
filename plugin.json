@@ -1,17 +1,17 @@
 {
-    "id": "recommendation-system",
-    "version": "0.0.4",
-    "meta": {
-        "label": "Recommendation system",
-        "category": "Recommendation",
-        "description": "Recommendation system toolkit: includes recipes to perform collaborative filtering, a recipe for negative sampling, and a dataiku app to create a first recommendation system workflow from scratch.",
-        "author": "Dataiku",
-        "icon": "icon-dku-collaborative-filtering icon-group",
-        "licenseInfo": "Apache Software License",
-        "url": "https://www.dataiku.com/product/plugins/recommendation-system/",
-        "tags": [
-            "Recommendation"
-        ],
-        "supportLevel": "NOT_SUPPORTED"
-    }
+  "id": "recommendation-system",
+  "version": "0.1.0",
+  "meta": {
+    "label": "Recommendation system",
+    "description": "Recommendation system toolkit: includes recipes to perform collaborative filtering, a recipe for negative sampling, and a dataiku app to create a first recommendation system workflow from scratch.",
+    "author": "Dataiku",
+    "icon": "icon-dku-collaborative-filtering icon-group",
+    "licenseInfo": "Apache Software License",
+    "url": "https://www.dataiku.com/product/plugins/recommendation-system/",
+    "tags": [
+      "Analytics",
+      "Digital Marketing"
+    ],
+    "supportLevel": "NOT_SUPPORTED"
+  }
 }
